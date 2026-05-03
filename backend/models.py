@@ -4,7 +4,7 @@
 
 from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Text, Table
 from sqlalchemy.orm import relationship
-from .database import Base
+from database import Base
 
 # Association tables for many-to-many relationships
 case_keywords = Table('case_keywords', Base.metadata,
@@ -20,6 +20,12 @@ case_agents = Table('case_agents', Base.metadata,
 case_organizations = Table('case_organizations', Base.metadata,
     Column('case_id', Integer, ForeignKey('cases.id')),
     Column('organization_id', Integer, ForeignKey('organizations.id'))
+)
+
+# Association for collections and cases
+collection_cases = Table('collection_cases', Base.metadata,
+    Column('collection_id', Integer, ForeignKey('collections.id')),
+    Column('case_id', Integer, ForeignKey('cases.id'))
 )
 
 class User(Base):
@@ -41,30 +47,30 @@ class Case(Base):
     link = Column(String, nullable=True)
     location = Column(String, nullable=True)  # Simple text
 
-    keywords = relationship("Keyword", secondary=case_keywords, back_populates="cases")
-    agents = relationship("Agent", secondary=case_agents, back_populates="cases")
-    organizations = relationship("Organization", secondary=case_organizations, back_populates="cases")
+    keywords = relationship("Keyword", secondary=case_keywords)
+    agents = relationship("Agent", secondary=case_agents)
+    organizations = relationship("Organization", secondary=case_organizations)
 
 class Keyword(Base):
     __tablename__ = "keywords"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True)
 
-    cases = relationship("Case", secondary=case_keywords, back_populates="keywords")
+    cases = relationship("Case", secondary=case_keywords)
 
 class Agent(Base):
     __tablename__ = "agents"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True)
 
-    cases = relationship("Case", secondary=case_agents, back_populates="cases")
+    cases = relationship("Case", secondary=case_agents)
 
 class Organization(Base):
     __tablename__ = "organizations"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True)
 
-    cases = relationship("Case", secondary=case_organizations, back_populates="cases")
+    cases = relationship("Case", secondary=case_organizations)
 
 class Collection(Base):
     __tablename__ = "collections"
@@ -73,13 +79,4 @@ class Collection(Base):
     name = Column(String)
 
     user = relationship("User", back_populates="collections")
-    cases = relationship("Case", secondary="collection_cases", back_populates="collections")
-
-# Association for collections and cases
-collection_cases = Table('collection_cases', Base.metadata,
-    Column('collection_id', Integer, ForeignKey('collections.id')),
-    Column('case_id', Integer, ForeignKey('cases.id'))
-)
-
-# Add back_populates to Case
-Case.collections = relationship("Collection", secondary=collection_cases, back_populates="cases")
+    cases = relationship("Case", secondary=collection_cases)

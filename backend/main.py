@@ -5,9 +5,10 @@
 
 from fastapi import FastAPI, Depends, HTTPException, status, File, UploadFile, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
-from . import database, models, schemas, auth, crud
+import database, models, schemas, auth, crud
 from typing import List, Optional
 import os
 import shutil
@@ -17,6 +18,11 @@ from datetime import timedelta
 models.Base.metadata.create_all(bind=database.engine)
 
 app = FastAPI()
+
+# Mount static files for uploads
+import os
+uploads_dir = os.path.join(os.path.dirname(__file__), "uploads")
+app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
 
 # Allow CORS for frontend
 app.add_middleware(
