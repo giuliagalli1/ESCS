@@ -44,8 +44,7 @@ cd ..
 # Start backend
 echo "Starting backend on http://localhost:8000"
 cd backend
-source venv/bin/activate
-uvicorn main:app --host 0.0.0.0 --port 8000 --reload &
+PYTHONPATH=/Users/giuliagalli/Desktop/ESCS/backend /Users/giuliagalli/Desktop/ESCS/backend/venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000 --reload &
 BACKEND_PID=$!
 cd ..
 
