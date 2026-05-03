@@ -3,13 +3,15 @@
 # It defines API endpoints for user auth, case management, and collections.
 # See ARCHITECTURE.md for how this fits into the system.
 
-from fastapi import FastAPI, Depends, HTTPException, status, File, UploadFile, Form
+from fastapi import FastAPI, Depends, HTTPException, status, File, UploadFile, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from . import database, models, schemas, auth, crud
 from typing import List, Optional
 import os
 import shutil
+from datetime import timedelta
 
 # Create database tables
 models.Base.metadata.create_all(bind=database.engine)
@@ -25,6 +27,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Security
+security = HTTPBearer()
+
 # Dependency
 def get_db():
     db = database.SessionLocal()
@@ -32,6 +37,16 @@ def get_db():
         yield db
     finally:
         db.close()
+
+def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security), db: Session = Depends(get_db)):
+    token = credentials.credentials
+    email = auth.verify_token(token)
+    if email is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    user = crud.get_user_by_email(db, email)
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+    return user
 
 # Auth endpoints
 @app.post("/register", response_model=schemas.User)
@@ -49,8 +64,8 @@ def login(request: schemas.LoginRequest, db: Session = Depends(get_db)):
     user = auth.authenticate_user(db, request.email, request.password)
     if not user:
         raise HTTPException(status_code=400, detail="Incorrect email or password")
-    # For simplicity, return user id; in real app, use sessions or JWT
-    return {"user_id": user.id, "email": user.email}
+    access_token = auth.create_access_token(data={"sub": user.email}, expires_delta=timedelta(minutes=auth.ACCESS_TOKEN_EXPIRE_MINUTES))
+    return {"access_token": access_token, "token_type": "bearer", "user_id": user.id, "email": user.email}
 
 # Case endpoints
 @app.get("/cases", response_model=List[schemas.Case])
@@ -102,14 +117,18 @@ def create_case(
     return crud.create_case(db, case_data, image_path)
 
 # Collections
-@app.get("/collections/{user_id}", response_model=List[schemas.Collection])
-def read_collections(user_id: int, db: Session = Depends(get_db)):
-    return crud.get_user_collections(db, user_id)
+@app.get("/collections", response_model=List[schemas.Collection])
+def read_collections(current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return crud.get_user_collections(db, current_user.id)
 
 @app.post("/collections")
-def create_collection(user_id: int, name: str, db: Session = Depends(get_db)):
-    return crud.create_collection(db, user_id, name)
+def create_collection(name: str, current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return crud.create_collection(db, current_user.id, name)
 
 @app.post("/collections/{collection_id}/cases/{case_id}")
-def add_to_collection(collection_id: int, case_id: int, db: Session = Depends(get_db)):
+def add_to_collection(collection_id: int, case_id: int, current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    # Check if collection belongs to user
+    collection = db.query(models.Collection).filter(models.Collection.id == collection_id, models.Collection.user_id == current_user.id).first()
+    if not collection:
+        raise HTTPException(status_code=404, detail="Collection not found")
     return crud.add_case_to_collection(db, collection_id, case_id)
