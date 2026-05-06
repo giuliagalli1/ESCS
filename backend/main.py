@@ -116,8 +116,8 @@ def create_case(
     image_path = None
     if image:
         os.makedirs("uploads", exist_ok=True)
-        image_path = f"uploads/{image.filename}"
-        with open(image_path, "wb") as buffer:
+        image_path = image.filename
+        with open(f"uploads/{image.filename}", "wb") as buffer:
             shutil.copyfileobj(image.file, buffer)
 
     return crud.create_case(db, case_data, image_path)
