@@ -1,0 +1,70 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2869
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 We are designing a digital platform called ESCS. The platform is a shared archive where students and teachers from the Ecosocial Design course in the Free University of Bolzano can upload, explore, save, and modify case studies related to ecosocial design practices.\
+The system has three main functions: user account access, case study upload, and saving cases into personal collections. The flowchart on page 1 shows these three connected workflows: sign-in, upload, and saved projects.\
+1.\uc0\u8288  \u8288 User access and sign-in\
+When a user opens the platform, the homepage should load a pool of existing case studies. At the top of the interface there should be a Sign In button.\
+If the user is not signed in, clicking this button opens a sign-in portal. The user enters their email and password. The system checks whether the email is registered and whether it belongs to a UNIBZ student or teacher account. If the email is not a UNIBZ account, the system should display:\
+\'93Sorry, only UNIBZ students and teachers can create an account.\'94\
+If the email exists and the password is correct, the user is logged in. The Sign In button is replaced by a User Account button. This button must be connected to the Users Collection database, so the user can access their saved projects and collections.\
+If the password is incorrect, the system should show:\
+\'93The password is incorrect.\'94\
+2.\uc0\u8288  \u8288 Uploading a case study\
+The platform should allow signed-in users to upload a new case. A case can be either a Project or an Organisation.\
+When the user clicks Upload a Case, the system first asks whether they want to upload a project or an organisation.\
+Each uploaded case must include these fields:\
+ name\
+ keywords\
+ who is involved: organisation and/or agent\
+ image\
+ link\
+ location\
+ description\
+For a project, the user enters the project name. The system checks whether a project with the same name already exists in the database. If it exists, the platform should show similar project names and keywords and ask:\
+\'93Is it the same?\'94\
+If yes, the platform asks:\
+\'93Do you want to modify it?\'94\
+If the user agrees, the existing project sheet opens and can be edited. If not, the user continues creating a new project.\
+For an organisation, the same logic applies: the user enters the organisation name, the system checks whether it already exists, shows similar organisations and keywords, and asks whether the user wants to modify an existing one or create a new one.\
+3.\uc0\u8288  \u8288 Keywords, agents, and organisations\
+When the user adds keywords, the system searches the keyword database.\
+If the keyword already exists, the user selects it.\
+ If it does not exist, the user can create a new keyword, which is added to the database.\
+The same logic applies to agents and organisations. When the user adds relevant people or organisations, the system searches the database by name.\
+If the name exists, the user selects it.\
+ If not, the system creates a new entry in the Agent or Organisation database.\
+This is important because the platform should avoid duplicated entries and create connections between projects, people, organisations, and keywords.\
+4.\uc0\u8288  \u8288 Image, link, location, and description\
+The platform then asks the user to upload an image. The image is stored in the database and connected to the case.\
+Next, the platform asks for a link. This can be optional. If the user has a link, they paste it; if not, they continue.\
+Then the platform asks for a location. The user enters one or more locations, and the system checks a map/location database. If a matching location exists, the user selects it. If not, the user can continue without a confirmed match or create/select a new location.\
+Finally, the user writes a description of the project or organisation.\
+Before publishing, the platform asks:\
+\'93Do you want to upload the project?\'94\
+or\
+\'93Do you want to upload the organisation?\'94\
+If yes, the case is uploaded. If no, the user can go back and modify the information.\
+5.\uc0\u8288  \u8288 Saving projects into personal collections\
+Users can save projects to their personal profile.\
+When the user presses Save Project, the system checks whether the project is already saved in their profile. If it is already saved, the platform should show:\
+\'93It is already saved.\'94\
+If it is not saved, the system asks:\
+\'93In which collection?\'94\
+The user can choose an existing collection or create a new one. If they choose New Collection, the system asks for the collection name, creates the collection, and saves the project inside it.\
+The saved projects are stored in the user\'92s personal collection database.\
+6.\uc0\u8288  \u8288 General system logic\
+The platform should work as a relational database. A case study is not just a single isolated post. Each case is connected to:\
+ keywords\
+ people/agents\
+ organisations\
+ location\
+ images\
+ links\
+ user collections\
+The most important goal is to make the archive collaborative but structured. Users should be able to add new knowledge, but the system should constantly check whether similar content already exists, so the database stays clean and connected.\
+The interface should feel simple and guided. The user should not see the whole database complexity. Instead, they should experience the upload process as a step-by-step form with clear questions, confirmations, and error messages.}
