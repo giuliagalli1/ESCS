@@ -2,7 +2,7 @@
 # Defines request/response models for API endpoints.
 
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 class UserBase(BaseModel):
     email: str
@@ -49,7 +49,7 @@ class CaseBase(BaseModel):
     name: str
     description: str
     link: Optional[str] = None
-    location: Optional[str] = None
+    location: Optional[Union[str, Dict[str, Any]]] = None
 
 class CaseCreate(CaseBase):
     keywords: List[str]
@@ -59,6 +59,7 @@ class CaseCreate(CaseBase):
 class Case(CaseBase):
     id: int
     image_path: Optional[str] = None
+    user_id: Optional[int] = None
     keywords: List[Keyword] = []
     agents: List[Agent] = []
     organizations: List[Organization] = []

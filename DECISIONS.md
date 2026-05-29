@@ -72,20 +72,11 @@
 
 **Changeable**: Yes.
 
-## 10. Import Structure
-**Unclear/Missing**: How to structure imports for the backend package.
+## 9. User Registration
+**Unclear/Missing**: Specification mentions sign-in but not how accounts are created.
 
-**Decision**: Use absolute imports instead of relative imports to avoid issues when running as a module or script.
+**Decision**: Add a registration page for UNIBZ emails to make the system buildable.
 
-**Alternatives**: Keep relative imports and run as package.
+**Alternatives**: Pre-populate users, but registration allows testing.
 
-**Changeable**: Yes, can refactor to proper package structure.
-
-## 11. SQLAlchemy Relationships
-**Unclear/Missing**: Back_populates causing mapper configuration errors.
-
-**Decision**: Remove back_populates from relationships to avoid circular dependency issues in SQLAlchemy.
-
-**Alternatives**: Properly configure bidirectional relationships.
-
-**Changeable**: Yes, can add back with proper setup.
+**Changeable**: Yes.

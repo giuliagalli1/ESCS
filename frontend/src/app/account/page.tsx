@@ -29,6 +29,9 @@ export default function Account() {
   const [error, setError] = useState('');
   const router = useRouter();
 
+  const savedCollection = collections.find((collection) => collection.name.toLowerCase() === 'saved');
+  const otherCollections = collections.filter((collection) => collection.name.toLowerCase() !== 'saved');
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -61,7 +64,7 @@ export default function Account() {
   const handleCreateCollection = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await api.post('/collections', { name: newCollectionName });
+      await api.post('/collections', null, { params: { name: newCollectionName } });
       setNewCollectionName('');
       fetchCollections();
     } catch (err: any) {
@@ -145,9 +148,32 @@ export default function Account() {
           </div>
         </div>
 
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Saved Projects</h2>
+          {savedCollection ? (
+            <div className="bg-white rounded-lg shadow-md p-6 mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">{savedCollection.name}</h3>
+              {savedCollection.cases.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {savedCollection.cases.map((caseItem) => (
+                    <div key={caseItem.id} className="border rounded p-4">
+                      <h4 className="font-semibold">{caseItem.name}</h4>
+                      <p className="text-sm text-gray-600">{caseItem.description}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-600">You haven't saved any projects yet.</p>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-600">Saved projects will appear here once you save them from the homepage.</p>
+          )}
+        </div>
+
         <div>
           <h2 className="text-xl font-semibold text-gray-900 mb-4">My Collections</h2>
-          {collections.map((collection) => (
+          {otherCollections.map((collection) => (
             <div key={collection.id} className="bg-white rounded-lg shadow-md p-6 mb-4">
               <h3 className="text-lg font-semibold text-gray-900 mb-2">{collection.name}</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

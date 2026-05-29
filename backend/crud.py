@@ -2,7 +2,7 @@
 # Functions to create, read, update, delete database records.
 
 from sqlalchemy.orm import Session
-import models, schemas, auth
+from . import models, schemas, auth
 from typing import List
 
 def get_user_by_email(db: Session, email: str):
@@ -24,7 +24,10 @@ def get_cases(db: Session, skip: int = 0, limit: int = 100):
 def get_case_by_name(db: Session, name: str):
     return db.query(models.Case).filter(models.Case.name == name).first()
 
-def create_case(db: Session, case: schemas.CaseCreate, image_path: str = None):
+def get_case(db: Session, case_id: int):
+    return db.query(models.Case).filter(models.Case.id == case_id).first()
+
+def create_case(db: Session, case: schemas.CaseCreate, user_id: int = None, image_path: str = None):
     # Get or create keywords, agents, orgs
     keywords = []
     for kw_name in case.keywords:
@@ -63,6 +66,7 @@ def create_case(db: Session, case: schemas.CaseCreate, image_path: str = None):
         link=case.link,
         location=case.location,
         image_path=image_path,
+        user_id=user_id,
         keywords=keywords,
         agents=agents,
         organizations=organizations
@@ -71,6 +75,55 @@ def create_case(db: Session, case: schemas.CaseCreate, image_path: str = None):
     db.commit()
     db.refresh(db_case)
     return db_case
+
+def update_case(db: Session, db_case: models.Case, case: schemas.CaseCreate, image_path: str = None):
+    db_case.type = case.type
+    db_case.name = case.name
+    db_case.description = case.description
+    db_case.link = case.link
+    db_case.location = case.location
+    if image_path is not None:
+        db_case.image_path = image_path
+
+    db_case.keywords.clear()
+    for kw_name in case.keywords:
+        kw = db.query(models.Keyword).filter(models.Keyword.name == kw_name).first()
+        if not kw:
+            kw = models.Keyword(name=kw_name)
+            db.add(kw)
+            db.commit()
+            db.refresh(kw)
+        db_case.keywords.append(kw)
+
+    db_case.agents.clear()
+    for ag_name in case.agents:
+        ag = db.query(models.Agent).filter(models.Agent.name == ag_name).first()
+        if not ag:
+            ag = models.Agent(name=ag_name)
+            db.add(ag)
+            db.commit()
+            db.refresh(ag)
+        db_case.agents.append(ag)
+
+    db_case.organizations.clear()
+    for org_name in case.organizations:
+        org = db.query(models.Organization).filter(models.Organization.name == org_name).first()
+        if not org:
+            org = models.Organization(name=org_name)
+            db.add(org)
+            db.commit()
+            db.refresh(org)
+        db_case.organizations.append(org)
+
+    db.commit()
+    db.refresh(db_case)
+    return db_case
+
+def delete_case(db: Session, db_case: models.Case):
+    db.delete(db_case)
+    db.commit()
+    return True
+
 
 def get_user_collections(db: Session, user_id: int):
     return db.query(models.Collection).filter(models.Collection.user_id == user_id).all()
