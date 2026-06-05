@@ -4,7 +4,7 @@
 
 from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Text, Table, JSON
 from sqlalchemy.orm import relationship, backref
-from .database import Base
+from database import Base
 
 # Association tables for many-to-many relationships
 case_keywords = Table('case_keywords', Base.metadata,

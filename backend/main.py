@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
-from . import database, models, schemas, auth, crud
+import database, models, schemas, auth, crud
 from typing import List, Optional
 import os
 import shutil

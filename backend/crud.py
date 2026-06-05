@@ -2,7 +2,7 @@
 # Functions to create, read, update, delete database records.
 
 from sqlalchemy.orm import Session
-from . import models, schemas, auth
+import models, schemas, auth
 from typing import List
 
 def get_user_by_email(db: Session, email: str):
