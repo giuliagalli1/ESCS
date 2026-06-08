@@ -81,6 +81,7 @@ BACKEND_PID=$!
 echo "Starting frontend..."
 cd "$SCRIPT_DIR/frontend"
 NEXT_PUBLIC_API_URL="$BACKEND_URL" \
+    FRONTEND_URL="$FRONTEND_URL" \
     npm run dev -- --host 0.0.0.0 --port 3000 &
 FRONTEND_PID=$!
 
