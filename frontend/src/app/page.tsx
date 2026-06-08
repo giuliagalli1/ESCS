@@ -6,7 +6,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import api from '../lib/api';
+import api, { API_BASE_URL } from '../lib/api';
 
 type CaseLocation = string | { display_name: string } | undefined;
 
@@ -155,7 +155,7 @@ export default function Home() {
                 </div>
               </div>
               {caseItem.image_path ? (
-                <img src={`http://localhost:8000/uploads/${caseItem.image_path}`} alt={caseItem.name} className="w-full h-36 object-cover mb-3 rounded" />
+                <img src={`${API_BASE_URL}/uploads/${caseItem.image_path}`} alt={caseItem.name} className="w-full h-36 object-cover mb-3 rounded" />
               ) : (
                 <div className="w-full h-36 bg-gray-100 mb-3 rounded flex items-center justify-center text-gray-400">No image</div>
               )}

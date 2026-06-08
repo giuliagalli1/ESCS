@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import api from '../../../lib/api';
+import api, { API_BASE_URL } from '../../../lib/api';
 
 type CaseLocation = string | { display_name: string } | undefined;
 
@@ -89,7 +89,7 @@ export default function CaseDetailsPage() {
 
         {caseItem.image_path && (
           <img
-            src={`http://localhost:8000/uploads/${caseItem.image_path}`}
+            src={`${API_BASE_URL}/uploads/${caseItem.image_path}`}
             alt={caseItem.name}
             className="w-full h-80 object-cover rounded-lg shadow-md mb-8"
           />

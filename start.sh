@@ -16,6 +16,19 @@ esac
 
 echo "Platform: $PLATFORM ($ARCH)"
 
+# ── Configuration ─────────────────────────────────────────────────────────────
+# URLs the deployed app uses. Override by exporting these before running, e.g.:
+#   BACKEND_URL=https://api.example.com FRONTEND_URL=https://app.example.com ./start.sh
+BACKEND_URL="${BACKEND_URL:-https://backend.terrarium.edt.bz}"
+FRONTEND_URL="${FRONTEND_URL:-https://terrarium.edt.bz}"
+
+# Strip any trailing slash for consistency.
+BACKEND_URL="${BACKEND_URL%/}"
+FRONTEND_URL="${FRONTEND_URL%/}"
+
+echo "Backend URL:  $BACKEND_URL"
+echo "Frontend URL: $FRONTEND_URL"
+
 install_python() {
     if [ "$PLATFORM" = "macos" ]; then
         brew install python
@@ -59,6 +72,7 @@ npm install
 echo "Starting backend..."
 cd "$SCRIPT_DIR/backend"
 PYTHONPATH="$SCRIPT_DIR/backend" \
+    CORS_ORIGINS="$FRONTEND_URL" \
     "$SCRIPT_DIR/backend/venv/bin/uvicorn" main:app \
     --host 0.0.0.0 --port 8000 --reload &
 BACKEND_PID=$!
@@ -66,7 +80,8 @@ BACKEND_PID=$!
 # ── Start frontend ────────────────────────────────────────────────────────────
 echo "Starting frontend..."
 cd "$SCRIPT_DIR/frontend"
-npm run dev -- --host 0.0.0.0 --port 3000 &
+NEXT_PUBLIC_API_URL="$BACKEND_URL" \
+    npm run dev -- --host 0.0.0.0 --port 3000 &
 FRONTEND_PID=$!
 
 cd "$SCRIPT_DIR"
@@ -75,8 +90,8 @@ echo $FRONTEND_PID > .frontend_pid
 
 echo ""
 echo "ESCS is running!"
-echo "  Frontend:    https://terrarium.edt.bz/"
-echo "  Backend API: https://backend.terrarium.edt.bz/"
+echo "  Frontend:    $FRONTEND_URL/"
+echo "  Backend API: $BACKEND_URL/"
 echo "  (locally:    http://0.0.0.0:3000 / :8000)"
 echo ""
 echo "Press Ctrl+C to stop"

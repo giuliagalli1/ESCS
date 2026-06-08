@@ -25,10 +25,16 @@ uploads_dir = os.path.join(os.path.dirname(__file__), "uploads")
 os.makedirs(uploads_dir, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
 
-# Allow CORS for frontend
+# Allow CORS for frontend.
+# Origins are configurable via the CORS_ORIGINS env var (comma-separated,
+# set by start.sh); the local dev server is always allowed as a fallback.
+_default_origins = ["http://localhost:3000", "https://terrarium.edt.bz"]
+_env_origins = [o.strip() for o in os.getenv("CORS_ORIGINS", "").split(",") if o.strip()]
+allow_origins = list(dict.fromkeys(_default_origins + _env_origins))
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Next.js dev server
+    allow_origins=allow_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

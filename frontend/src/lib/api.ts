@@ -3,7 +3,10 @@
 
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:8000';
+// Backend base URL. Configurable at build/run time via NEXT_PUBLIC_API_URL
+// (set by start.sh). Falls back to the local dev server.
+export const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '') || 'http://localhost:8000';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
