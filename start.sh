@@ -55,18 +55,18 @@ echo "Setting up frontend..."
 cd "$SCRIPT_DIR/frontend"
 npm install
 
-# ── Start backend (binds to 127.0.0.1, nginx proxies from outside) ────────────
+# ── Start backend ─────────────────────────────────────────────────────────────
 echo "Starting backend..."
 cd "$SCRIPT_DIR/backend"
 PYTHONPATH="$SCRIPT_DIR/backend" \
     "$SCRIPT_DIR/backend/venv/bin/uvicorn" main:app \
-    --host 127.0.0.1 --port 8000 --reload &
+    --host 0.0.0.0 --port 8000 --reload &
 BACKEND_PID=$!
 
-# ── Start frontend (binds to 127.0.0.1, nginx proxies from outside) ───────────
+# ── Start frontend ────────────────────────────────────────────────────────────
 echo "Starting frontend..."
 cd "$SCRIPT_DIR/frontend"
-npm run dev -- --host 127.0.0.1 --port 3000 &
+npm run dev -- --host 0.0.0.0 --port 3000 &
 FRONTEND_PID=$!
 
 cd "$SCRIPT_DIR"
@@ -77,7 +77,7 @@ echo ""
 echo "ESCS is running!"
 echo "  Frontend:    https://terrarium.edt.bz/"
 echo "  Backend API: https://backend.terrarium.edt.bz/"
-echo "  (locally:    http://127.0.0.1:3000 / :8000)"
+echo "  (locally:    http://0.0.0.0:3000 / :8000)"
 echo ""
 echo "Press Ctrl+C to stop"
 
