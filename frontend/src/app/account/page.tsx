@@ -7,6 +7,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '../../lib/api';
+import AppLogo from '../../components/app-logo';
 
 interface Collection {
   id: number;
@@ -93,18 +94,22 @@ export default function Account() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <h1 className="text-2xl font-bold text-gray-900">My Account</h1>
-            <div>
-              <button onClick={handleLogout} className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 mr-4">
-                Logout
-              </button>
-              <button onClick={() => router.push('/')} className="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700">
-                Home
-              </button>
-            </div>
+      <header className="sticky top-0 z-20 bg-black px-4 py-4 sm:px-8">
+        <div className="mx-auto flex max-w-7xl items-center justify-between">
+          <AppLogo />
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={() => router.push('/')}
+              className="rounded-full border border-white/70 px-5 py-2 text-[15px] font-medium text-white transition hover:bg-white/10"
+            >
+              Home
+            </button>
+            <button
+              onClick={handleLogout}
+              className="rounded-full bg-[#ffb885] px-5 py-2 text-[15px] font-medium text-black transition hover:bg-[#f2a15e]"
+            >
+              Logout
+            </button>
           </div>
         </div>
       </header>
@@ -112,7 +117,7 @@ export default function Account() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Create New Collection</h2>
-          <form onSubmit={handleCreateCollection} className="flex gap-4">
+          <form onSubmit={handleCreateCollection} className="flex flex-col gap-4 sm:flex-row">
             <input
               type="text"
               value={newCollectionName}
@@ -129,20 +134,20 @@ export default function Account() {
 
         <div className="mb-8">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Add Case to Collection</h2>
-          <div className="flex gap-4 mb-4">
-            <select value={selectedCollection || ''} onChange={(e) => setSelectedCollection(Number(e.target.value))} className="px-3 py-2 border border-gray-300 rounded-md">
+          <div className="flex flex-col gap-4 lg:flex-row mb-4">
+            <select value={selectedCollection || ''} onChange={(e) => setSelectedCollection(Number(e.target.value))} className="px-3 py-2 border border-gray-300 rounded-md w-full lg:w-auto">
               <option value="">Select Collection</option>
               {collections.map((c) => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
-            <select value={selectedCase || ''} onChange={(e) => setSelectedCase(Number(e.target.value))} className="px-3 py-2 border border-gray-300 rounded-md">
+            <select value={selectedCase || ''} onChange={(e) => setSelectedCase(Number(e.target.value))} className="px-3 py-2 border border-gray-300 rounded-md w-full lg:w-auto">
               <option value="">Select Case</option>
               {allCases.map((c) => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
-            <button onClick={handleAddToCollection} className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">
+            <button onClick={handleAddToCollection} className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 w-full lg:w-auto">
               Add
             </button>
           </div>

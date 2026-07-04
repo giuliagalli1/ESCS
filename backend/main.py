@@ -211,17 +211,74 @@ def delete_case(case_id: int, current_user: models.User = Depends(get_current_us
 def read_collections(current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
     return crud.get_user_collections(db, current_user.id)
 
-@app.post("/collections")
+@app.post("/collections", response_model=schemas.Collection)
 def create_collection(name: str, current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
     return crud.create_collection(db, current_user.id, name)
 
-@app.post("/collections/{collection_id}/cases/{case_id}")
+@app.post("/collections/{collection_id}/cases/{case_id}", response_model=schemas.Collection)
 def add_to_collection(collection_id: int, case_id: int, current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
     # Check if collection belongs to user
     collection = db.query(models.Collection).filter(models.Collection.id == collection_id, models.Collection.user_id == current_user.id).first()
     if not collection:
         raise HTTPException(status_code=404, detail="Collection not found")
     return crud.add_case_to_collection(db, collection_id, case_id)
+
+@app.put("/collections/{collection_id}", response_model=schemas.Collection)
+def update_collection_route(collection_id: int, collection_update: schemas.CollectionBase, current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    collection = db.query(models.Collection).filter(models.Collection.id == collection_id, models.Collection.user_id == current_user.id).first()
+    if not collection:
+        raise HTTPException(status_code=404, detail="Collection not found")
+    return crud.update_collection(db, collection, collection_update.name)
+
+@app.delete("/collections/{collection_id}")
+def delete_collection_route(collection_id: int, current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    collection = db.query(models.Collection).filter(models.Collection.id == collection_id, models.Collection.user_id == current_user.id).first()
+    if not collection:
+        raise HTTPException(status_code=404, detail="Collection not found")
+    crud.delete_collection(db, collection)
+    return {"detail": "Collection deleted"}
+
+@app.delete("/collections/{collection_id}/cases/{case_id}")
+def remove_from_collection(collection_id: int, case_id: int, current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    # Check if collection belongs to user
+    collection = db.query(models.Collection).filter(models.Collection.id == collection_id, models.Collection.user_id == current_user.id).first()
+    if not collection:
+        raise HTTPException(status_code=404, detail="Collection not found")
+    
+    # Remove the case from the collection
+    case = db.query(models.Case).filter(models.Case.id == case_id).first()
+    if not case:
+        raise HTTPException(status_code=404, detail="Case not found")
+    
+    if case in collection.cases:
+        collection.cases.remove(case)
+        db.commit()
+    
+    return {"detail": "Case removed from collection"}
+
+@app.put("/user/change-password")
+def change_password(request: schemas.ChangePasswordRequest, current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if not auth.verify_password(request.old_password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="Incorrect current password")
+    current_user.hashed_password = auth.get_password_hash(request.new_password)
+    db.commit()
+    return {"detail": "Password updated successfully"}
+
+@app.delete("/user")
+def delete_user_account(current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    # Preserve user-uploaded case studies by clearing ownership first.
+    user_cases = db.query(models.Case).filter(models.Case.user_id == current_user.id).all()
+    for db_case in user_cases:
+        db_case.user_id = None
+
+    user_collections = db.query(models.Collection).filter(models.Collection.user_id == current_user.id).all()
+    for collection in user_collections:
+        collection.cases = []
+        db.delete(collection)
+
+    db.delete(current_user)
+    db.commit()
+    return {"detail": "User account deleted"}
 
 if __name__ == "__main__":
     import uvicorn

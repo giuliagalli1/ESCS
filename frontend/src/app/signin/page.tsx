@@ -1,6 +1,5 @@
 // app/signin/page.tsx - Sign-in page
-// Allows users to log in with email and password.
-// Validates UNIBZ email and handles authentication.
+// Implements the Figma-designed sign-in experience while preserving the existing authentication API flow.
 
 'use client';
 
@@ -8,6 +7,17 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import api from '../../lib/api';
+import AppLogo from '../../components/app-logo';
+import AppLogoMark from '../../components/app-logo-mark';
+
+function CloseIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className} aria-hidden="true">
+      <path d="M6 6l12 12" />
+      <path d="M18 6 6 18" />
+    </svg>
+  );
+}
 
 export default function SignIn() {
   const [email, setEmail] = useState('');
@@ -29,41 +39,68 @@ export default function SignIn() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-        <h1 className="text-2xl font-bold text-center mb-6">Sign In</h1>
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label className="block text-gray-700 mb-2">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              required
-            />
+    <div className="relative min-h-screen overflow-hidden bg-black">
+      <div aria-hidden className="absolute inset-0">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(173,189,255,0.25),_transparent_40%),linear-gradient(135deg,_#0f172a,_#111827)]" />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <AppLogoMark className="h-[300vw] w-[300vw] max-w-none shrink-0 opacity-[0.07]" />
+        </div>
+      </div>
+
+      <div className="relative z-10 flex min-h-screen flex-col">
+        <header className="sticky top-0 z-20 flex items-center justify-between bg-black px-4 py-4 sm:px-8">
+          <AppLogo />
+
+          <Link href="/" aria-label="Close" className="flex h-[50px] w-[50px] items-center justify-center rounded-full border border-white/70">
+            <CloseIcon className="h-8 w-8 text-white" />
+          </Link>
+        </header>
+
+        <div className="flex flex-1 items-center justify-center px-4 py-8">
+          <div className="w-full max-w-[360px] rounded-[28px] border border-[#a8a8a8] bg-white/95 px-6 py-6 shadow-2xl">
+            <h1 className="text-center text-[22px] font-semibold text-black">Sign in</h1>
+
+            <form onSubmit={handleSubmit} className="mx-auto mt-4 flex flex-col gap-3">
+              <div className="space-y-1">
+                <label className="block text-[13px] font-normal text-black">UNIBZ EMAIL</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="h-[46px] w-full rounded-full border border-black bg-white px-4 text-[14px] text-black outline-none transition focus:border-2 focus:border-black"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-[13px] font-normal text-black">PASSWORD</label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="h-[46px] w-full rounded-full border border-black bg-white px-4 text-[14px] text-black outline-none transition focus:border-2 focus:border-black"
+                  required
+                />
+              </div>
+
+              {error && <p className="text-center text-[13px] text-red-600">{error}</p>}
+
+              <button
+                type="submit"
+                className="h-[46px] w-full rounded-full bg-[#ffb885] text-[15px] font-normal text-black transition hover:brightness-95"
+              >
+                Access
+              </button>
+
+              <Link
+                href="/register"
+                className="flex h-[46px] w-full items-center justify-center rounded-full border-2 border-[#adbdff] text-[15px] font-normal text-[#adbdff] transition hover:bg-[#adbdff]/10"
+              >
+                Create a new account
+              </Link>
+            </form>
           </div>
-          <div className="mb-4">
-            <label className="block text-gray-700 mb-2">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              required
-            />
-          </div>
-          {error && <p className="text-red-600 mb-4">{error}</p>}
-          <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700">
-            Sign In
-          </button>
-        </form>
-        <p className="text-center mt-4">
-          Don't have an account? <Link href="/register" className="text-blue-600 hover:underline">Register</Link>
-        </p>
-        <p className="text-center mt-2">
-          <Link href="/" className="text-gray-600 hover:underline">Back to Home</Link>
-        </p>
+        </div>
       </div>
     </div>
   );

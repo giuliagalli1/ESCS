@@ -30,6 +30,7 @@ export default function LocationAutocomplete({
   const [suggestions, setSuggestions] = useState<LocationResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [hasUserTyped, setHasUserTyped] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -59,7 +60,9 @@ export default function LocationAutocomplete({
         );
         const results = (await response.json()) as LocationResult[];
         setSuggestions(results);
-        setShowSuggestions(true);
+        if (hasUserTyped) {
+          setShowSuggestions(true);
+        }
       } catch (err) {
         setSuggestions([]);
       } finally {
@@ -78,6 +81,7 @@ export default function LocationAutocomplete({
 
   const handleInputChange = (input: string) => {
     onValueChange(input);
+    setHasUserTyped(true);
     if (selectedLocation && input !== selectedLocation.display_name) {
       onSelectLocation(null);
     }
@@ -90,7 +94,7 @@ export default function LocationAutocomplete({
         type="text"
         value={value}
         onChange={(e) => handleInputChange(e.target.value)}
-        onFocus={() => value.trim() && setShowSuggestions(true)}
+        onFocus={() => value.trim() && hasUserTyped && setShowSuggestions(true)}
         placeholder={placeholder}
         className="w-full px-3 py-2 border border-gray-300 rounded-md"
       />

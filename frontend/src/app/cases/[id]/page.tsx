@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import api, { API_BASE_URL } from '../../../lib/api';
+import { PLACEHOLDER_CASE_IMAGE } from '../../../lib/placeholder-image';
 
 type CaseLocation = string | { display_name: string } | undefined;
 
@@ -89,9 +90,16 @@ export default function CaseDetailsPage() {
 
         {caseItem.image_path && (
           <img
-            src={`${API_BASE_URL}/uploads/${caseItem.image_path}`}
+            src={`${API_BASE_URL}/uploads/${encodeURIComponent(caseItem.image_path)}`}
             alt={caseItem.name}
             className="w-full h-80 object-cover rounded-lg shadow-md mb-8"
+            onError={(e) => {
+              const target = e.currentTarget;
+              if (target.src !== PLACEHOLDER_CASE_IMAGE) {
+                target.onerror = null;
+                target.src = PLACEHOLDER_CASE_IMAGE;
+              }
+            }}
           />
         )}
 

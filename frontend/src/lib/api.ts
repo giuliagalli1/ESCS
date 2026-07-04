@@ -10,15 +10,28 @@ export const API_BASE_URL =
 
 const api = axios.create({
   baseURL: API_BASE_URL,
+  withCredentials: true,
 });
 
-// Add token to requests
+// Add token to requests only when running in the browser.
 api.interceptors.request.use((config) => {
-  config.headers = config.headers || {};
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  if (typeof window === 'undefined') {
+    return config;
   }
+
+  const token = window.localStorage.getItem('token');
+  if (!token) {
+    return config;
+  }
+
+  const requestHeaders = config.headers ?? {};
+  if (requestHeaders && typeof requestHeaders === 'object' && 'set' in requestHeaders) {
+    (requestHeaders as { set: (name: string, value: string) => void }).set('Authorization', `Bearer ${token}`);
+  } else {
+    (requestHeaders as Record<string, string>).Authorization = `Bearer ${token}`;
+  }
+
+  config.headers = requestHeaders;
   return config;
 });
 

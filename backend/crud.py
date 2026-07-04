@@ -1,6 +1,7 @@
 # crud.py - CRUD operations
 # Functions to create, read, update, delete database records.
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 import models, schemas, auth
 from typing import List
@@ -22,7 +23,7 @@ def get_cases(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.Case).offset(skip).limit(limit).all()
 
 def get_case_by_name(db: Session, name: str):
-    return db.query(models.Case).filter(models.Case.name == name).first()
+    return db.query(models.Case).filter(func.lower(models.Case.name) == name.strip().lower()).first()
 
 def get_case(db: Session, case_id: int):
     return db.query(models.Case).filter(models.Case.id == case_id).first()
@@ -31,9 +32,10 @@ def create_case(db: Session, case: schemas.CaseCreate, user_id: int = None, imag
     # Get or create keywords, agents, orgs
     keywords = []
     for kw_name in case.keywords:
-        kw = db.query(models.Keyword).filter(models.Keyword.name == kw_name).first()
+        normalized_kw = kw_name.strip()
+        kw = db.query(models.Keyword).filter(func.lower(models.Keyword.name) == normalized_kw.lower()).first()
         if not kw:
-            kw = models.Keyword(name=kw_name)
+            kw = models.Keyword(name=normalized_kw)
             db.add(kw)
             db.commit()
             db.refresh(kw)
@@ -41,9 +43,10 @@ def create_case(db: Session, case: schemas.CaseCreate, user_id: int = None, imag
 
     agents = []
     for ag_name in case.agents:
-        ag = db.query(models.Agent).filter(models.Agent.name == ag_name).first()
+        normalized_ag = ag_name.strip()
+        ag = db.query(models.Agent).filter(func.lower(models.Agent.name) == normalized_ag.lower()).first()
         if not ag:
-            ag = models.Agent(name=ag_name)
+            ag = models.Agent(name=normalized_ag)
             db.add(ag)
             db.commit()
             db.refresh(ag)
@@ -51,9 +54,10 @@ def create_case(db: Session, case: schemas.CaseCreate, user_id: int = None, imag
 
     organizations = []
     for org_name in case.organizations:
-        org = db.query(models.Organization).filter(models.Organization.name == org_name).first()
+        normalized_org = org_name.strip()
+        org = db.query(models.Organization).filter(func.lower(models.Organization.name) == normalized_org.lower()).first()
         if not org:
-            org = models.Organization(name=org_name)
+            org = models.Organization(name=normalized_org)
             db.add(org)
             db.commit()
             db.refresh(org)
@@ -87,9 +91,10 @@ def update_case(db: Session, db_case: models.Case, case: schemas.CaseCreate, ima
 
     db_case.keywords.clear()
     for kw_name in case.keywords:
-        kw = db.query(models.Keyword).filter(models.Keyword.name == kw_name).first()
+        normalized_kw = kw_name.strip()
+        kw = db.query(models.Keyword).filter(func.lower(models.Keyword.name) == normalized_kw.lower()).first()
         if not kw:
-            kw = models.Keyword(name=kw_name)
+            kw = models.Keyword(name=normalized_kw)
             db.add(kw)
             db.commit()
             db.refresh(kw)
@@ -97,9 +102,10 @@ def update_case(db: Session, db_case: models.Case, case: schemas.CaseCreate, ima
 
     db_case.agents.clear()
     for ag_name in case.agents:
-        ag = db.query(models.Agent).filter(models.Agent.name == ag_name).first()
+        normalized_ag = ag_name.strip()
+        ag = db.query(models.Agent).filter(func.lower(models.Agent.name) == normalized_ag.lower()).first()
         if not ag:
-            ag = models.Agent(name=ag_name)
+            ag = models.Agent(name=normalized_ag)
             db.add(ag)
             db.commit()
             db.refresh(ag)
@@ -107,9 +113,10 @@ def update_case(db: Session, db_case: models.Case, case: schemas.CaseCreate, ima
 
     db_case.organizations.clear()
     for org_name in case.organizations:
-        org = db.query(models.Organization).filter(models.Organization.name == org_name).first()
+        normalized_org = org_name.strip()
+        org = db.query(models.Organization).filter(func.lower(models.Organization.name) == normalized_org.lower()).first()
         if not org:
-            org = models.Organization(name=org_name)
+            org = models.Organization(name=normalized_org)
             db.add(org)
             db.commit()
             db.refresh(org)
@@ -142,3 +149,16 @@ def add_case_to_collection(db: Session, collection_id: int, case_id: int):
         collection.cases.append(case)
         db.commit()
     return collection
+
+
+def update_collection(db: Session, db_collection: models.Collection, name: str):
+    db_collection.name = name
+    db.commit()
+    db.refresh(db_collection)
+    return db_collection
+
+
+def delete_collection(db: Session, db_collection: models.Collection):
+    db.delete(db_collection)
+    db.commit()
+    return True
