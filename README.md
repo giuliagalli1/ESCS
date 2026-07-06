@@ -21,7 +21,7 @@ ESCS provides a shared archive where users can:
 ## How to start
 
 1. Clone or download this repository
-2. Run `./start.sh` in the project root
+2. Run `./start../stop.sh` in the project root
 3. Open http://localhost:3000 in your browser
 
 The script will:

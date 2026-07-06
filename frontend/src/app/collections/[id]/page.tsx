@@ -7,7 +7,10 @@ import api, { API_BASE_URL } from '../../../lib/api';
 import { PLACEHOLDER_CASE_IMAGE } from '../../../lib/placeholder-image';
 import CaseDetailsModal from '../../../components/case-details-modal';
 import SaveCollectionModal from '../../../components/save-collection-modal';
+import EditCaseModal from '../../../components/edit-case-modal';
 import AppLogo from '../../../components/app-logo';
+import ConfirmDialog from '../../../components/confirm-dialog';
+import { useLockBodyScroll } from '../../../lib/use-lock-body-scroll';
 
 function SearchIcon({ className = '' }: { className?: string }) {
   return (
@@ -48,6 +51,7 @@ interface Case {
   link?: string;
   location?: any;
   user_id?: number;
+  is_unibz_course?: boolean;
   keywords: { name: string }[];
   agents: { name: string }[];
   organizations: { name: string }[];
@@ -75,11 +79,15 @@ export default function CollectionDetailPage() {
   const [isEditingCollection, setIsEditingCollection] = useState(false);
   const [editCollectionError, setEditCollectionError] = useState('');
   const [isDeletingCollection, setIsDeletingCollection] = useState(false);
+  const [showDeleteCollectionConfirm, setShowDeleteCollectionConfirm] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [selectedCaseId, setSelectedCaseId] = useState<number | null>(null);
   const [search, setSearch] = useState('');
   const [showPreferencesMenu, setShowPreferencesMenu] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
+
+  useLockBodyScroll(showEditCollectionModal || showChangePasswordModal || showDeleteAccountModal);
   const [passwordCurrent, setPasswordCurrent] = useState('');
   const [passwordNew, setPasswordNew] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
@@ -255,16 +263,17 @@ export default function CollectionDetailPage() {
       setEditCollectionError(err.response?.data?.detail || 'Failed to delete collection');
     } finally {
       setIsDeletingCollection(false);
+      setShowDeleteCollectionConfirm(false);
     }
   };
 
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen bg-white font-mono text-black">
-        <header className="sticky top-0 z-20 bg-black px-4 py-4 sm:px-8">
-          <AppLogo />
+        <header className="sticky top-0 z-20 bg-black px-[36px] py-4 sm:px-[52px]">
+          <AppLogo hideNameOnMobile />
         </header>
-        <main className="mx-auto max-w-7xl px-4 py-16 text-center sm:px-8">
+        <main className="mx-auto max-w-7xl px-[36px] py-16 text-center sm:px-[52px]">
           <p className="mb-4 text-gray-600">Please sign in to view collections</p>
           <Link href="/signin" className="inline-block rounded-full bg-[#ffb885] px-5 py-2 font-medium text-black transition hover:bg-[#f2a15e]">
             Sign In
@@ -277,10 +286,10 @@ export default function CollectionDetailPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-white font-mono text-black">
-        <header className="sticky top-0 z-20 bg-black px-4 py-4 sm:px-8">
-          <AppLogo />
+        <header className="sticky top-0 z-20 bg-black px-[36px] py-4 sm:px-[52px]">
+          <AppLogo hideNameOnMobile />
         </header>
-        <main className="mx-auto max-w-7xl px-4 py-16 sm:px-8">
+        <main className="mx-auto max-w-7xl px-[36px] py-16 sm:px-[52px]">
           <p className="text-center text-gray-600">Loading...</p>
         </main>
       </div>
@@ -290,10 +299,10 @@ export default function CollectionDetailPage() {
   if (!collection) {
     return (
       <div className="min-h-screen bg-white font-mono text-black">
-        <header className="sticky top-0 z-20 bg-black px-4 py-4 sm:px-8">
-          <AppLogo />
+        <header className="sticky top-0 z-20 bg-black px-[36px] py-4 sm:px-[52px]">
+          <AppLogo hideNameOnMobile />
         </header>
-        <main className="mx-auto max-w-7xl px-4 py-16 sm:px-8">
+        <main className="mx-auto max-w-7xl px-[36px] py-16 sm:px-[52px]">
           <p className="text-center text-gray-600">Collection not found</p>
         </main>
       </div>
@@ -318,15 +327,15 @@ export default function CollectionDetailPage() {
 
   return (
     <div className="min-h-screen bg-white font-mono text-black">
-      <header className="sticky top-0 z-20 bg-black px-4 py-4 sm:px-8">
+      <header className="sticky top-0 z-20 bg-black px-[36px] py-4 sm:px-[52px]">
         <div className="mx-auto flex max-w-7xl items-center justify-between">
-          <AppLogo />
+          <AppLogo hideNameOnMobile />
 
           <div className="relative">
             <button
               type="button"
               onClick={() => setShowPreferencesMenu((prev) => !prev)}
-              className="rounded-full bg-white px-5 py-2 text-[15px] font-medium text-black transition hover:bg-gray-100"
+              className="flex h-[45px] items-center justify-center rounded-full border border-white/70 px-3 text-[16px] font-medium text-white transition hover:bg-white/10 sm:h-[54px] sm:px-4 sm:text-[18px]"
             >
               preferences
             </button>
@@ -378,44 +387,56 @@ export default function CollectionDetailPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-4 py-10 sm:px-8">
-        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-4">
+      <main className="mx-auto max-w-[1600px] px-[36px] py-10 sm:px-[52px]">
+        <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="order-1 flex flex-col items-center gap-3 lg:flex-row lg:justify-start lg:gap-8">
             <Link
               href="/collections"
               aria-label="Back to Collections"
-              className="flex h-[45px] w-[45px] shrink-0 items-center justify-center rounded-full border border-black text-black transition hover:bg-gray-100"
+              className="flex h-[45px] w-[45px] shrink-0 items-center justify-center self-start rounded-full border border-black text-black transition hover:bg-gray-100 lg:self-auto"
             >
               <ArrowLeftIcon className="h-5 w-5" />
             </Link>
-            <div>
-              <div>
-                <h1 className="text-[32px] font-bold text-black">{collection.name}</h1>
-                <p className="mt-1 text-gray-600">
-                  {filteredCases.length} {filteredCases.length === 1 ? 'case study' : 'case studies'}
-                </p>
-              </div>
+            <div className="text-center lg:text-left">
+              <h1 className="text-[32px] font-bold text-black">{collection.name}</h1>
+              <p className="mt-1 text-gray-600">
+                {filteredCases.length} {filteredCases.length === 1 ? 'case study' : 'case studies'}
+              </p>
             </div>
           </div>
 
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="flex min-h-[45px] w-full items-center justify-between rounded-full border border-black px-4 py-2 sm:w-auto sm:min-w-[320px]">
+          <div className="order-3 flex justify-center lg:order-2">
+            <button
+              type="button"
+              onClick={handleOpenEditCollection}
+              className="shrink-0 whitespace-nowrap rounded-full bg-[#ffb885] px-4 py-2 text-sm font-medium text-black transition hover:bg-[#f2a15e]"
+            >
+              Edit collection
+            </button>
+          </div>
+
+          <div className="order-2 w-full lg:order-3 lg:w-auto lg:min-w-[320px]">
+            <div className="flex min-h-[45px] w-full items-center justify-between rounded-full border border-black px-4 py-2">
               <input
                 type="search"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="search"
-                className="w-full bg-transparent text-[16px] text-black placeholder:text-gray-400 focus:outline-none"
+                className="w-full bg-transparent text-[16px] text-black placeholder:text-gray-400 focus:outline-none [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none"
               />
-              <SearchIcon className="ml-3 h-6 w-6 shrink-0 text-black" />
+              {search ? (
+                <button
+                  type="button"
+                  onClick={() => setSearch('')}
+                  aria-label="Clear search"
+                  className="ml-3 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xl leading-none text-black"
+                >
+                  ×
+                </button>
+              ) : (
+                <SearchIcon className="ml-3 h-6 w-6 shrink-0 text-black" />
+              )}
             </div>
-            <button
-              type="button"
-              onClick={handleOpenEditCollection}
-              className="rounded-full bg-[#ffb885] px-4 py-2 text-sm font-medium text-black transition hover:bg-[#f2a15e]"
-            >
-              Edit collection
-            </button>
           </div>
         </div>
 
@@ -465,6 +486,11 @@ export default function CollectionDetailPage() {
                     <span className={`absolute right-4 top-[196px] z-10 -translate-y-1/2 rounded-full px-3 py-1 text-[12px] font-medium ${getTypeBadgeClasses(caseItem.type)}`}>
                       {caseItem.type.toUpperCase()}
                     </span>
+                    {caseItem.is_unibz_course && (
+                      <span className="absolute left-4 top-[196px] z-10 -translate-y-1/2 rounded-full bg-white/90 px-3 py-1 text-[11px] font-medium text-black shadow-sm">
+                        🎓 UNIBZ course
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex flex-col gap-3 px-[22px] py-[20px]">
@@ -488,21 +514,26 @@ export default function CollectionDetailPage() {
                       </div>
                     )}
 
-                    {caseItem.type !== 'organization' && (
+                    {caseItem.type !== 'organization' && caseItem.organizations?.[0]?.name && caseItem.organizations[0].name !== '/' && (
                       <p className="text-[12px] text-black/80">
-                        {caseItem.organizations?.[0]?.name || 'Name of the organisation'}
+                        {caseItem.organizations[0].name}
                       </p>
                     )}
                   </div>
                 </div>
 
                 {currentUserId > 0 && caseItem.user_id === currentUserId && (
-                  <Link
-                    href={`/edit/${caseItem.id}`}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedCaseId(caseItem.id);
+                      setShowEditModal(true);
+                    }}
                     className="absolute left-4 top-4 rounded-full bg-[#ffb885] px-3 py-1 text-[12px] font-medium text-black shadow-sm transition hover:bg-[#f2a15e]"
                   >
                     edit
-                  </Link>
+                  </button>
                 )}
 
                 <button
@@ -586,7 +617,7 @@ export default function CollectionDetailPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={handleDeleteCollection}
+                  onClick={() => setShowDeleteCollectionConfirm(true)}
                   disabled={isDeletingCollection || isEditingCollection}
                   className="rounded-full bg-[#ffb885] px-6 py-2 font-medium text-black transition hover:bg-[#f2a15e] disabled:opacity-50"
                 >
@@ -598,6 +629,17 @@ export default function CollectionDetailPage() {
         </div>
       )}
 
+      <ConfirmDialog
+        isOpen={showDeleteCollectionConfirm}
+        title="Delete collection"
+        message="Delete this collection? This cannot be undone."
+        confirmLabel="Delete Collection"
+        confirmButtonClassName="bg-[#ffb885] text-black hover:bg-[#f2a15e]"
+        isConfirming={isDeletingCollection}
+        onConfirm={handleDeleteCollection}
+        onCancel={() => setShowDeleteCollectionConfirm(false)}
+      />
+
       {showCaseDetailsModal && selectedCaseId && (
         <CaseDetailsModal
           caseId={selectedCaseId}
@@ -606,7 +648,8 @@ export default function CollectionDetailPage() {
           currentUserId={currentUserId}
           onEditClick={(caseId) => {
             setShowCaseDetailsModal(false);
-            router.push(`/edit/${caseId}`);
+            setSelectedCaseId(caseId);
+            setShowEditModal(true);
           }}
           onManageSavedCase={(caseId) => {
             setSelectedCaseId(caseId);
@@ -624,6 +667,13 @@ export default function CollectionDetailPage() {
           }}
         />
       )}
+
+      <EditCaseModal
+        isOpen={showEditModal}
+        caseId={selectedCaseId}
+        onClose={() => setShowEditModal(false)}
+        onDeleted={() => fetchCollections()}
+      />
 
       {showChangePasswordModal && (
         <div
@@ -728,7 +778,7 @@ export default function CollectionDetailPage() {
                 type="button"
                 onClick={handleDeleteAccount}
                 disabled={isDeletingAccount}
-                className="rounded-full bg-red-600 px-6 py-2 font-medium text-white transition hover:bg-red-700 disabled:opacity-50"
+                className="rounded-full bg-[#ffb885] px-6 py-2 font-medium text-black transition hover:bg-[#f2a15e] disabled:opacity-50"
               >
                 {isDeletingAccount ? 'Deleting...' : 'Delete Account'}
               </button>

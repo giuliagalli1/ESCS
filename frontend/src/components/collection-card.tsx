@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { API_BASE_URL } from '../lib/api';
 import { PLACEHOLDER_CASE_IMAGE } from '../lib/placeholder-image';
+import ConfirmDialog from './confirm-dialog';
 
 interface Case {
   id: number;
@@ -25,6 +26,7 @@ export default function CollectionCard({ id, name, cases, onEditCollection, onDe
   const [editName, setEditName] = useState(name);
   const [error, setError] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     setEditName(name);
@@ -36,6 +38,7 @@ export default function CollectionCard({ id, name, cases, onEditCollection, onDe
     .map(caseItem => caseItem.image_path!);
 
   return (
+    <>
     <div
       className="relative h-full cursor-pointer overflow-hidden rounded-[20px] border border-[rgba(179,179,179,0.48)] bg-white font-mono shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg"
       onClick={() => {
@@ -89,9 +92,10 @@ export default function CollectionCard({ id, name, cases, onEditCollection, onDe
             })
           ) : (
             // No images - show orange placeholder
-            <div className="col-span-2 flex items-center justify-center bg-[#ffb885]">
+            <div className="relative col-span-2 flex items-center justify-center bg-[#ffb885]">
+              <div className="absolute inset-0 bg-black/20" />
               <svg
-                className="w-16 h-16 text-white"
+                className="relative w-16 h-16 text-white"
                 fill="currentColor"
                 viewBox="0 0 20 20"
               >
@@ -155,11 +159,7 @@ export default function CollectionCard({ id, name, cases, onEditCollection, onDe
                 </div>
                 <button
                   type="button"
-                  onClick={() => {
-                    if (window.confirm('Delete this collection? This cannot be undone.')) {
-                      onDeleteCollection(id);
-                    }
-                  }}
+                  onClick={() => setShowDeleteConfirm(true)}
                   disabled={isProcessing}
                   className="w-full rounded-full bg-[#ffb885] px-3 py-2 font-medium text-black transition hover:bg-[#f2a15e] disabled:opacity-50"
                 >
@@ -179,5 +179,27 @@ export default function CollectionCard({ id, name, cases, onEditCollection, onDe
           )}
         </div>
       </div>
-    );
-  }
+
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        title="Delete collection"
+        message="Delete this collection? This cannot be undone."
+        confirmLabel="Delete Collection"
+        confirmButtonClassName="bg-[#ffb885] text-black hover:bg-[#f2a15e]"
+        isConfirming={isProcessing}
+        onConfirm={async () => {
+          setIsProcessing(true);
+          try {
+            await onDeleteCollection(id);
+            setShowDeleteConfirm(false);
+          } catch (err: any) {
+            setError(err?.message || 'Failed to delete collection');
+          } finally {
+            setIsProcessing(false);
+          }
+        }}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
+    </>
+  );
+}

@@ -50,6 +50,7 @@ class CaseBase(BaseModel):
     description: str
     link: Optional[str] = None
     location: Optional[Union[str, Dict[str, Any]]] = None
+    is_unibz_course: bool = False
 
 class CaseCreate(CaseBase):
     keywords: List[str]

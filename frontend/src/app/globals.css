@@ -128,3 +128,19 @@
     @apply font-sans;
   }
 }
+
+.escs-map-popup .leaflet-popup-content-wrapper {
+  border-radius: 20px;
+  border: 1px solid rgba(179, 179, 179, 0.48);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  font-family: var(--font-geist-mono), sans-serif;
+}
+
+.escs-map-popup .leaflet-popup-content {
+  margin: 16px;
+}
+
+.escs-map-popup .leaflet-popup-tip {
+  border: 1px solid rgba(179, 179, 179, 0.48);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}

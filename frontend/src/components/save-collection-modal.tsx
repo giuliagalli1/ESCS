@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import api from '../lib/api';
+import { useLockBodyScroll } from '../lib/use-lock-body-scroll';
 
 interface Collection {
   id: number;
@@ -34,15 +35,12 @@ export default function SaveCollectionModal({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const collectionsWithCase = useMemo(
-    () => collections.filter((c) => c.cases.some((caseItem) => caseItem.id === caseId)),
-    [collections, caseId],
-  );
-
   const filteredCollections = useMemo(
     () => collections.filter((c) => c.name.toLowerCase().includes(search.trim().toLowerCase())),
     [collections, search],
   );
+
+  useLockBodyScroll(isOpen);
 
   if (!isOpen) return null;
 
@@ -185,15 +183,13 @@ export default function SaveCollectionModal({
               >
                 + New collection
               </button>
-              {collectionsWithCase.length > 0 && (
-                <button
-                  type="button"
-                  onClick={handleClose}
-                  className="rounded-full bg-[#ffb885] px-6 py-2 text-[15px] font-medium text-black transition hover:bg-[#f2a15e]"
-                >
-                  Save
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={handleClose}
+                className="rounded-full bg-[#ffb885] px-6 py-2 text-[15px] font-medium text-black transition hover:bg-[#f2a15e]"
+              >
+                Save
+              </button>
             </div>
           </>
         ) : (

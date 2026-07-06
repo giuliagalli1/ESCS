@@ -46,6 +46,7 @@ class Case(Base):
     image_path = Column(String, nullable=True)
     link = Column(String, nullable=True)
     location = Column(JSON, nullable=True)
+    is_unibz_course = Column(Boolean, default=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
 
     keywords = relationship("Keyword", secondary=case_keywords, back_populates="cases")
@@ -81,5 +82,5 @@ class Collection(Base):
     name = Column(String)
 
     user = relationship("User", back_populates="collections")
-    cases = relationship("Case", secondary=collection_cases, backref=backref("collections"))
+    cases = relationship("Case", secondary=collection_cases, backref=backref("collections"), order_by=Case.id.desc())
 

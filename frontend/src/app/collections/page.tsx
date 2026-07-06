@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import api from '../../lib/api';
 import CollectionCard from '../../components/collection-card';
 import AppLogo from '../../components/app-logo';
+import { useLockBodyScroll } from '../../lib/use-lock-body-scroll';
 
 function SearchIcon({ className = '' }: { className?: string }) {
   return (
@@ -47,6 +48,9 @@ export default function CollectionsPage() {
   const [showPreferencesMenu, setShowPreferencesMenu] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
+
+  useLockBodyScroll(showCreateModal || showChangePasswordModal || showDeleteAccountModal);
+
   const [passwordCurrent, setPasswordCurrent] = useState('');
   const [passwordNew, setPasswordNew] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
@@ -169,8 +173,8 @@ export default function CollectionsPage() {
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen bg-white font-mono text-black">
-        <header className="bg-black px-4 py-4 sm:px-8">
-          <AppLogo />
+        <header className="bg-black px-[36px] py-4 sm:px-[52px]">
+          <AppLogo hideNameOnMobile />
         </header>
         <main className="mx-auto max-w-7xl px-4 py-16 text-center sm:px-8">
           <p className="mb-4 text-gray-600">Please sign in to view your collections</p>
@@ -184,15 +188,15 @@ export default function CollectionsPage() {
 
   return (
     <div className="min-h-screen bg-white font-mono text-black">
-      <header className="sticky top-0 z-20 bg-black px-4 py-4 sm:px-8">
+      <header className="sticky top-0 z-20 bg-black px-[36px] py-4 sm:px-[52px]">
         <div className="mx-auto flex max-w-7xl items-center justify-between">
-          <AppLogo />
+          <AppLogo hideNameOnMobile />
 
           <div className="relative">
             <button
               type="button"
               onClick={() => setShowPreferencesMenu((prev) => !prev)}
-              className="rounded-full bg-white px-5 py-2 text-[15px] font-medium text-black transition hover:bg-gray-100"
+              className="flex h-[45px] items-center justify-center rounded-full border border-white/70 px-3 text-[16px] font-medium text-white transition hover:bg-white/10 sm:h-[54px] sm:px-4 sm:text-[18px]"
             >
               preferences
             </button>
@@ -244,51 +248,63 @@ export default function CollectionsPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-4 py-10 sm:px-8">
-        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-4">
+      <main className="mx-auto max-w-[1600px] px-[36px] py-10 sm:px-[52px]">
+        <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="order-1 flex flex-col items-center gap-3 lg:flex-row lg:justify-start lg:gap-8">
             <Link
               href="/"
               aria-label="Back to Home"
-              className="flex h-[45px] w-[45px] shrink-0 items-center justify-center rounded-full border border-black text-black transition hover:bg-gray-100"
+              className="flex h-[45px] w-[45px] shrink-0 items-center justify-center self-start rounded-full border border-black text-black transition hover:bg-gray-100 lg:self-auto"
             >
               <ArrowLeftIcon className="h-5 w-5" />
             </Link>
-            <div>
+            <div className="text-center lg:text-left">
               <h1 className="text-[32px] font-bold text-black">My collections</h1>
               <p className="mt-2 text-gray-600">Organise and access your saved case study collections</p>
             </div>
           </div>
-          <div className="flex flex-wrap gap-3">
+
+          <div className="order-3 flex flex-wrap justify-center gap-3 lg:order-2">
             <Link
               href="/my-uploaded-case-study"
-              className="flex items-center rounded-full bg-[#adbdff] px-5 py-2 font-medium text-black transition hover:opacity-90"
+              className="flex shrink-0 items-center whitespace-nowrap rounded-full bg-[#adbdff] px-5 py-2 font-medium text-black transition hover:opacity-90"
             >
               Uploaded case studies
             </Link>
             <button
               type="button"
               onClick={() => setShowCreateModal(true)}
-              className="rounded-full bg-[#2cffb2] px-5 py-2 font-medium text-black transition hover:opacity-90"
+              className="shrink-0 whitespace-nowrap rounded-full bg-[#2cffb2] px-5 py-2 font-medium text-black transition hover:opacity-90"
             >
               + New collection
             </button>
           </div>
-        </div>
 
-        <div className="mb-8 max-w-xl">
-          <label htmlFor="collection-search" className="sr-only">
-            Search collections
-          </label>
-          <div className="flex min-h-[45px] items-center justify-between rounded-full border border-black px-4 py-2">
-            <input
-              id="collection-search"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="search"
-              className="min-w-0 flex-1 bg-transparent text-[16px] text-black placeholder:text-gray-400 focus:outline-none"
-            />
-            <SearchIcon className="ml-3 h-6 w-6 shrink-0 text-black" />
+          <div className="order-2 w-full lg:order-3 lg:w-auto lg:min-w-[320px]">
+            <label htmlFor="collection-search" className="sr-only">
+              Search collections
+            </label>
+            <div className="flex min-h-[45px] items-center justify-between rounded-full border border-black px-4 py-2">
+              <input
+                id="collection-search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="search"
+                className="min-w-0 flex-1 bg-transparent text-[16px] text-black placeholder:text-gray-400 focus:outline-none"
+              />
+              {searchQuery ? (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  aria-label="Clear search"
+                  className="ml-3 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xl leading-none text-black"
+                >
+                  ×
+                </button>
+              ) : (
+                <SearchIcon className="ml-3 h-6 w-6 shrink-0 text-black" />
+              )}
+            </div>
           </div>
         </div>
 
@@ -324,7 +340,6 @@ export default function CollectionsPage() {
                   }
                 }}
                 onDeleteCollection={async (collectionId) => {
-                  if (!window.confirm('Delete this collection? This cannot be undone.')) return;
                   try {
                     await api.delete(`/collections/${collectionId}`);
                     setCollections((prev) => prev.filter((item) => item.id !== collectionId));
@@ -492,7 +507,7 @@ export default function CollectionsPage() {
                 type="button"
                 onClick={handleDeleteAccount}
                 disabled={isDeletingAccount}
-                className="rounded-full bg-red-600 px-6 py-2 font-medium text-white transition hover:bg-red-700 disabled:opacity-50"
+                className="rounded-full bg-[#ffb885] px-6 py-2 font-medium text-black transition hover:bg-[#f2a15e] disabled:opacity-50"
               >
                 {isDeletingAccount ? 'Deleting...' : 'Delete Account'}
               </button>

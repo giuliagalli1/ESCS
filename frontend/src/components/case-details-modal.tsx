@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import api, { API_BASE_URL } from '../lib/api';
 import { PLACEHOLDER_CASE_IMAGE } from '../lib/placeholder-image';
+import { useLockBodyScroll } from '../lib/use-lock-body-scroll';
 
 type CaseLocation = string | { display_name: string } | undefined;
 
@@ -15,6 +16,7 @@ interface Case {
   link?: string;
   location?: CaseLocation;
   user_id: number;
+  is_unibz_course?: boolean;
   keywords: { name: string }[];
   agents: { name: string }[];
   organizations: { name: string }[];
@@ -49,6 +51,8 @@ export default function CaseDetailsModal({
   const [relatedProjects, setRelatedProjects] = useState<Case[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useLockBodyScroll(isOpen);
 
   useEffect(() => {
     if (!isOpen || !caseId) return;
@@ -86,7 +90,9 @@ export default function CaseDetailsModal({
   if (!isOpen) return null;
 
   const heroImage = caseItem?.image_path ? `${API_BASE_URL}/uploads/${encodeURIComponent(caseItem.image_path)}` : 'http://localhost:3845/assets/14738f84b6f9feb87119b05b4afc56c1a916fe7c.png';
-  const organizationName = caseItem?.organizations?.[0]?.name || 'Name of organisation';
+  const organizationName = caseItem?.organizations?.[0]?.name;
+  const hasOrganization = Boolean(organizationName && organizationName !== '/');
+  const realAgents = caseItem?.agents.filter((ag) => ag.name && ag.name !== '/') || [];
   const locationLabel = caseItem?.location ? (typeof caseItem.location === 'string' ? caseItem.location : caseItem.location?.display_name) : 'Location';
   const linkLabel = caseItem?.link || 'www.linktotheproject.com';
 
@@ -109,15 +115,19 @@ export default function CaseDetailsModal({
           <div className="px-8 py-14 text-center">
             <h1 className="mb-4 text-2xl font-bold text-gray-900">Error</h1>
             <p className="mb-6 text-gray-600">{error}</p>
-            <button onClick={onClose} className="rounded-full bg-[#ffb885] px-5 py-2 font-medium text-black hover:bg-[#f2a15e]">
-              Close
+            <button
+              onClick={onClose}
+              aria-label="Close"
+              className="flex h-12 w-12 items-center justify-center rounded-full bg-[#ffb885] text-2xl font-light text-black hover:bg-[#f2a15e]"
+            >
+              ×
             </button>
           </div>
         )}
 
         {caseItem && !loading && (
           <>
-            <div className="relative h-[280px] overflow-hidden rounded-t-[32px] sm:h-[360px]">
+            <div className="sticky top-[-180px] z-20 h-[280px] overflow-hidden rounded-t-[32px] sm:top-[-240px] sm:h-[360px]">
               <img
                 src={heroImage}
                 alt={caseItem.name}
@@ -132,28 +142,28 @@ export default function CaseDetailsModal({
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
 
-              <div className={`absolute left-6 top-6 rounded-full px-5 py-2 text-[16px] font-semibold uppercase tracking-[0.2em] text-black sm:left-8 sm:top-8 sm:text-[18px] ${caseItem.type === 'organization' ? 'bg-[#2cffb2]' : 'bg-[#adbdff]'}`}>
+              <div className={`absolute left-6 bottom-6 rounded-full px-5 py-2 text-[16px] font-semibold uppercase tracking-[0.2em] text-black sm:left-8 sm:bottom-8 sm:text-[18px] ${caseItem.type === 'organization' ? 'bg-[#2cffb2]' : 'bg-[#adbdff]'}`}>
                 {caseItem.type.toUpperCase()}
               </div>
 
               <button
                 type="button"
                 onClick={onClose}
-                className="absolute right-4 top-4 flex h-12 w-12 items-center justify-center rounded-full bg-white/90 text-2xl font-light text-black shadow-lg transition hover:bg-white sm:right-6 sm:top-6"
+                className="absolute right-4 bottom-4 flex h-12 w-12 items-center justify-center rounded-full bg-white/90 text-2xl font-light text-black shadow-lg transition hover:bg-white sm:right-6 sm:bottom-6"
                 aria-label="Close"
               >
                 ×
               </button>
             </div>
 
-            <div className="px-6 py-7 sm:px-10 sm:py-8">
+            <div className="relative z-10 bg-white px-6 py-7 sm:px-10 sm:py-8">
               <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
                 <div className="max-w-3xl">
                   <h1 className="text-[28px] font-semibold text-black sm:text-[36px]">{caseItem.name}</h1>
-                  {caseItem.type === 'project' && (
+                  {caseItem.type === 'project' && hasOrganization && (
                     <button
                       type="button"
-                      onClick={() => onOrganizationClick(organizationName)}
+                      onClick={() => onOrganizationClick(organizationName!)}
                       className="mt-2 text-[18px] text-gray-700 transition hover:text-black hover:underline sm:text-[22px]"
                     >
                       {organizationName}
@@ -225,23 +235,28 @@ export default function CaseDetailsModal({
                     <span className="truncate">{linkLabel}</span>
                   </a>
                 )}
+
+                {caseItem.is_unibz_course && (
+                  <span className="flex items-center gap-2 rounded-full border border-black px-4 py-2 text-[15px] text-black">
+                    <span className="text-[16px]">🎓</span>
+                    <span>UNIBZ course project</span>
+                  </span>
+                )}
               </div>
 
               <div className="mt-8">
-                <div className="mb-8">
-                  <h3 className="text-[13px] font-semibold uppercase tracking-[0.2em] text-gray-500">Agents</h3>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {caseItem.agents.length > 0 ? (
-                      caseItem.agents.map((ag) => (
+                {realAgents.length > 0 && (
+                  <div className="mb-8">
+                    <h3 className="text-[13px] font-semibold uppercase tracking-[0.2em] text-gray-500">Agents</h3>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {realAgents.map((ag) => (
                         <span key={ag.name} className="rounded-full bg-white px-3 py-2 text-[14px] font-medium text-gray-700 ring-1 ring-gray-200">
                           {ag.name}
                         </span>
-                      ))
-                    ) : (
-                      <span className="text-sm text-gray-600">None</span>
-                    )}
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
 
                 <div>
                   <h2 className="text-[20px] font-semibold text-black">Description</h2>

@@ -13,6 +13,7 @@ import SaveCollectionModal from '../components/save-collection-modal';
 import CaseDetailsModal from '../components/case-details-modal';
 import EditCaseModal from '../components/edit-case-modal';
 import UploadCaseModal from '../components/upload-case-modal';
+import { useLockBodyScroll } from '../lib/use-lock-body-scroll';
 
 type CaseLocation = string | { display_name: string } | undefined;
 
@@ -25,6 +26,7 @@ interface Case {
   link?: string;
   location?: CaseLocation;
   user_id?: number;
+  is_unibz_course?: boolean;
   keywords: { name: string }[];
   agents: { name: string }[];
   organizations: { name: string }[];
@@ -106,14 +108,41 @@ export default function Home() {
   const [username, setUsername] = useState('username');
   const [currentUserId, setCurrentUserId] = useState<number>(0);
   const [search, setSearch] = useState('');
+  const [unibzFilter, setUnibzFilter] = useState<'all' | 'unibz' | 'non-unibz'>('all');
+  const [typeFilter, setTypeFilter] = useState<'all' | 'project' | 'organization'>('all');
   const [showSaveCollectionModal, setShowSaveCollectionModal] = useState(false);
   const [showCaseDetailsModal, setShowCaseDetailsModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showMapModal, setShowMapModal] = useState(false);
   const [selectedCaseId, setSelectedCaseId] = useState<number | null>(null);
+  const [showUploadButton, setShowUploadButton] = useState(true);
+  useLockBodyScroll(showMapModal);
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<any>(null);
+  const uploadButtonHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const HIDE_DELAY_MS = 2500;
+
+    const resetHideTimer = () => {
+      setShowUploadButton(true);
+      if (uploadButtonHideTimer.current) {
+        clearTimeout(uploadButtonHideTimer.current);
+      }
+      uploadButtonHideTimer.current = setTimeout(() => setShowUploadButton(false), HIDE_DELAY_MS);
+    };
+
+    resetHideTimer();
+    window.addEventListener('scroll', resetHideTimer, { passive: true });
+
+    return () => {
+      window.removeEventListener('scroll', resetHideTimer);
+      if (uploadButtonHideTimer.current) {
+        clearTimeout(uploadButtonHideTimer.current);
+      }
+    };
+  }, []);
 
   const fetchCases = async () => {
     try {
@@ -221,18 +250,29 @@ export default function Home() {
 
   const filteredCases = cases.filter((caseItem) => {
     const q = search.trim().toLowerCase();
-    if (!q) return true;
-    const inName = caseItem.name?.toLowerCase().includes(q);
-    const inKeywords = caseItem.keywords?.some((k) => k.name.toLowerCase().includes(q));
-    const inOrgs = caseItem.organizations?.some((o) => o.name.toLowerCase().includes(q));
-    const inAgents = caseItem.agents?.some((a) => a.name.toLowerCase().includes(q));
-    const loc = caseItem.location;
-    let inLocation = false;
-    if (loc) {
-      if (typeof loc === 'string') inLocation = loc.toLowerCase().includes(q);
-      else if ((loc as any).display_name) inLocation = (loc as any).display_name.toLowerCase().includes(q);
+    let matchesSearch = true;
+    if (q) {
+      const inName = caseItem.name?.toLowerCase().includes(q);
+      const inKeywords = caseItem.keywords?.some((k) => k.name.toLowerCase().includes(q));
+      const inOrgs = caseItem.organizations?.some((o) => o.name.toLowerCase().includes(q));
+      const inAgents = caseItem.agents?.some((a) => a.name.toLowerCase().includes(q));
+      const loc = caseItem.location;
+      let inLocation = false;
+      if (loc) {
+        if (typeof loc === 'string') inLocation = loc.toLowerCase().includes(q);
+        else if ((loc as any).display_name) inLocation = (loc as any).display_name.toLowerCase().includes(q);
+      }
+      matchesSearch = Boolean(inName || inKeywords || inOrgs || inAgents || inLocation);
     }
-    return Boolean(inName || inKeywords || inOrgs || inAgents || inLocation);
+
+    const matchesUnibz =
+      unibzFilter === 'all' ||
+      (unibzFilter === 'unibz' && Boolean(caseItem.is_unibz_course)) ||
+      (unibzFilter === 'non-unibz' && !caseItem.is_unibz_course);
+
+    const matchesType = typeFilter === 'all' || caseItem.type === typeFilter;
+
+    return matchesSearch && matchesUnibz && matchesType;
   });
 
   const getCaseImage = (caseItem: Case, index: number) => {
@@ -301,7 +341,7 @@ export default function Home() {
         .filter((item): item is { caseItem: Case; lat: number; lon: number } => Boolean(item && typeof item.lat === 'number' && typeof item.lon === 'number'));
 
       const groupedPins = pins.reduce<Record<string, { lat: number; lon: number; cases: Case[] }>>((acc, pin) => {
-        const key = `${pin.lat.toFixed(6)}:${pin.lon.toFixed(6)}`;
+        const key = `${pin.lat.toFixed(3)}:${pin.lon.toFixed(3)}`;
         if (!acc[key]) {
           acc[key] = { lat: pin.lat, lon: pin.lon, cases: [] };
         }
@@ -326,19 +366,23 @@ export default function Home() {
           }).addTo(map);
 
           const popupHtml = `
-            <div style="min-width:220px;max-width:260px;font-family:inherit;">
-              <div style="font-weight:700;margin-bottom:8px;color:#111;">${pinGroup.cases.length > 1 ? 'Study cases at this location' : 'Study case at this location'}</div>
-              <div style="display:flex;flex-direction:column;gap:6px;">
+            <div style="min-width:240px;max-width:270px;">
+              <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:#000;">${pinGroup.cases.length > 1 ? 'Study cases at this location' : 'Study case at this location'}</div>
+              <div style="display:flex;flex-direction:column;gap:8px;max-height:240px;overflow-y:auto;padding-right:2px;">
                 ${pinGroup.cases
                   .map(
                     (caseItem) => `
                       <button
                         type="button"
                         data-case-id="${caseItem.id}"
-                        style="text-align:left;padding:8px 10px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;cursor:pointer;color:#111;"
+                        style="text-align:left;padding:10px 12px;border:1px solid rgba(179,179,179,0.48);border-radius:14px;background:#fff;cursor:pointer;transition:box-shadow 0.15s, transform 0.15s;"
+                        onmouseover="this.style.boxShadow='0 4px 10px rgba(0,0,0,0.08)';this.style.transform='translateY(-1px)'"
+                        onmouseout="this.style.boxShadow='none';this.style.transform='translateY(0)'"
                       >
-                        <div style="font-size:13px;font-weight:600;">${caseItem.name}</div>
-                        <div style="font-size:11px;color:#6b7280;">${caseItem.type}</div>
+                        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                          <div style="font-size:13px;font-weight:600;color:#000;">${caseItem.name}</div>
+                          <span style="flex-shrink:0;padding:2px 9px;border-radius:9999px;font-size:10px;font-weight:500;color:#000;background:${caseItem.type === 'organization' ? '#2cffb2' : '#adbdff'};">${caseItem.type.toUpperCase()}</span>
+                        </div>
                       </button>
                     `,
                   )
@@ -348,8 +392,11 @@ export default function Home() {
           `;
 
           marker.bindPopup(popupHtml, {
-            autoPan: false,
+            autoPan: true,
+            autoPanPadding: [16, 16],
             closeButton: false,
+            maxHeight: 300,
+            className: 'escs-map-popup',
           });
 
           marker.on('mouseover', () => {
@@ -381,6 +428,12 @@ export default function Home() {
           marker.on('popupopen', () => {
             const popupElement = marker.getPopup()?.getElement();
             if (!popupElement) return;
+
+            const scrollableList = popupElement.querySelector<HTMLElement>('div[style*="overflow-y"]');
+            if (scrollableList) {
+              L.DomEvent.disableScrollPropagation(scrollableList);
+              L.DomEvent.disableClickPropagation(scrollableList);
+            }
 
             popupElement.addEventListener('mouseenter', () => {
               popupElement.dataset.hovering = 'true';
@@ -420,26 +473,15 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-white text-black">
-      <header className="sticky top-0 z-20 bg-black px-4 py-4 sm:px-8 lg:px-20">
-        <div className="mx-auto flex max-w-7xl flex-row items-center gap-2 sm:gap-4 lg:gap-6">
-          <AppLogo />
-
-          <label className="flex min-h-[45px] min-w-0 flex-1 items-center justify-between rounded-full border border-white/70 px-3 py-2 sm:px-4 lg:mx-auto lg:max-w-[660px]">
-            <input
-              type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="search"
-              className="w-full min-w-0 bg-transparent text-[18px] text-white placeholder:text-white/50 focus:outline-none"
-            />
-            <SearchIcon className="ml-2 h-6 w-6 shrink-0 text-white sm:ml-3 sm:h-8 sm:w-8" />
-          </label>
+      <header className="sticky top-0 z-20 bg-black px-[36px] py-4 sm:px-[52px] lg:px-[100px]">
+        <div className="mx-auto flex max-w-7xl flex-row items-center justify-between gap-2 sm:gap-4 lg:gap-6">
+          <AppLogo hideNameOnMobile />
 
           <div className="flex shrink-0 flex-row items-center gap-2 sm:gap-3">
             <button
               type="button"
               onClick={() => setShowMapModal(true)}
-              className="flex items-center justify-center rounded-full border border-white/70 px-3 py-2 text-[14px] font-medium text-white transition hover:bg-white/10 sm:px-4 sm:text-[16px]"
+              className="flex h-[45px] items-center justify-center rounded-full border border-white/70 px-3 text-[16px] font-medium text-white transition hover:bg-white/10 sm:h-[54px] sm:px-4 sm:text-[18px]"
             >
               Map
             </button>
@@ -448,7 +490,7 @@ export default function Home() {
               <Link
                 href="/collections"
                 aria-label="My profile"
-                className="flex items-center justify-center rounded-full border border-white/70 px-3 py-2 sm:px-4"
+                className="flex h-[45px] items-center justify-center rounded-full border border-white/70 px-3 sm:h-[54px] sm:px-4"
               >
                 <span className="text-[16px] font-light text-white sm:text-[18px]">{username}</span>
               </Link>
@@ -482,9 +524,10 @@ export default function Home() {
               <button
                 type="button"
                 onClick={() => setShowMapModal(false)}
-                className="rounded-full border border-gray-300 px-3 py-1 text-sm text-gray-700 transition hover:bg-gray-100"
+                aria-label="Close"
+                className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-300 text-lg text-gray-700 transition hover:bg-gray-100"
               >
-                Close
+                ×
               </button>
             </div>
             <div ref={mapContainerRef} className="h-[420px] w-full overflow-hidden rounded-[16px] border border-gray-200" />
@@ -492,11 +535,73 @@ export default function Home() {
         </div>
       )}
 
-      <main className="mx-auto flex max-w-[1600px] flex-col px-4 py-8 sm:px-6 lg:px-10">
-        <div className="mb-8 text-center">
-          <h2 className="text-[22px] font-semibold text-black sm:text-[25px]">
-            A living archive of eco-social design
-          </h2>
+      <main className="mx-auto flex max-w-[1600px] flex-col px-[36px] py-8 sm:px-[44px] lg:px-[60px]">
+        <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between lg:gap-6">
+          <div className="order-1 mx-auto max-w-[260px] text-center sm:max-w-[290px] lg:text-left">
+            <h2 className="text-[22px] font-semibold text-black sm:text-[25px]">
+              A living archive of <span className="whitespace-nowrap">eco-social</span> design
+            </h2>
+          </div>
+
+          <div className="order-3 flex flex-wrap items-center justify-center gap-3 sm:gap-6 lg:order-2">
+            <div className="inline-flex shrink-0 overflow-hidden rounded-full border border-black">
+              {(['all', 'unibz', 'non-unibz'] as const).map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => setUnibzFilter(option)}
+                  aria-pressed={unibzFilter === option}
+                  className={`whitespace-nowrap px-4 py-2 text-sm font-medium transition ${
+                    option !== 'all' ? 'border-l border-black' : ''
+                  } ${unibzFilter === option ? 'bg-[#ffb885] text-black' : 'bg-white text-gray-500 hover:bg-gray-50'}`}
+                >
+                  {option === 'all' ? 'All' : option === 'unibz' ? 'UNIBZ' : 'Non-UNIBZ'}
+                </button>
+              ))}
+            </div>
+
+            <div className="inline-flex shrink-0 overflow-hidden rounded-full border border-black">
+              {(['all', 'organization', 'project'] as const).map((option) => {
+                const activeColor =
+                  option === 'all' ? 'bg-[#ffb885]' : option === 'organization' ? 'bg-[#2cffb2]' : 'bg-[#adbdff]';
+                return (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => setTypeFilter(option)}
+                    aria-pressed={typeFilter === option}
+                    className={`whitespace-nowrap px-4 py-2 text-sm font-medium transition ${
+                      option !== 'all' ? 'border-l border-black' : ''
+                    } ${typeFilter === option ? `${activeColor} text-black` : 'bg-white text-gray-500 hover:bg-gray-50'}`}
+                  >
+                    {option === 'all' ? 'All' : option === 'organization' ? 'Organisation' : 'Project'}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <label className="order-2 flex min-h-[45px] w-full items-center justify-between rounded-full border border-black px-4 py-2 sm:w-auto sm:min-w-[320px] lg:order-3 lg:shrink-0">
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="search"
+              className="w-full min-w-0 bg-transparent text-[16px] text-black placeholder:text-gray-400 focus:outline-none [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none"
+            />
+            {search ? (
+              <button
+                type="button"
+                onClick={() => setSearch('')}
+                aria-label="Clear search"
+                className="ml-2 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xl leading-none text-black"
+              >
+                ×
+              </button>
+            ) : (
+              <SearchIcon className="ml-2 h-6 w-6 shrink-0 text-black" />
+            )}
+          </label>
         </div>
 
         {search && (
@@ -537,6 +642,11 @@ export default function Home() {
                   <span className={`absolute right-4 top-[196px] z-10 -translate-y-1/2 rounded-full px-3 py-1 text-[12px] font-medium ${getTypeBadgeClasses(caseItem.type)}`}>
                     {caseItem.type.toUpperCase()}
                   </span>
+                  {caseItem.is_unibz_course && (
+                    <span className="absolute left-4 top-[196px] z-10 -translate-y-1/2 rounded-full bg-white/90 px-3 py-1 text-[11px] font-medium text-black shadow-sm">
+                      🎓 UNIBZ course
+                    </span>
+                  )}
                 </div>
 
                 <div className="flex flex-col gap-3 px-[22px] py-[20px]">
@@ -558,9 +668,9 @@ export default function Home() {
                     ))}
                   </div>
 
-                  {caseItem.type !== 'organization' && (
+                  {caseItem.type !== 'organization' && caseItem.organizations?.[0]?.name && caseItem.organizations[0].name !== '/' && (
                     <p className="text-[12px] text-black/80">
-                      {caseItem.organizations?.[0]?.name || 'Name of the organisation'}
+                      {caseItem.organizations[0].name}
                     </p>
                   )}
                 </div>
@@ -605,10 +715,12 @@ export default function Home() {
         <button
           type="button"
           onClick={() => setShowUploadModal(true)}
-          className="fixed bottom-6 right-6 z-20 flex h-14 w-14 items-center justify-center rounded-full bg-[#ffb885] text-black shadow-lg shadow-orange-200/70 transition hover:bg-[#f2a15e] focus:outline-none focus:ring-2 focus:ring-[#ffb885]"
           aria-label="Upload a Case"
+          className={`fixed bottom-10 left-1/2 z-20 flex h-[77px] w-[77px] -translate-x-1/2 items-center justify-center rounded-full bg-[#ffb885] text-black shadow-xl shadow-orange-200/70 transition-all duration-300 hover:bg-[#f2a15e] focus:outline-none focus:ring-2 focus:ring-[#ffb885] ${
+            showUploadButton ? 'opacity-100' : 'pointer-events-none translate-y-4 opacity-0'
+          }`}
         >
-          <span className="text-3xl leading-none text-white">+</span>
+          <span className="text-[38px] leading-none text-white">+</span>
           <span className="sr-only">Upload a Case</span>
         </button>
       )}
@@ -673,6 +785,7 @@ export default function Home() {
         isOpen={showEditModal}
         caseId={selectedCaseId}
         onClose={() => setShowEditModal(false)}
+        onDeleted={() => fetchCases()}
       />
     </div>
   );

@@ -48,7 +48,7 @@ export default function SignIn() {
       </div>
 
       <div className="relative z-10 flex min-h-screen flex-col">
-        <header className="sticky top-0 z-20 flex items-center justify-between bg-black px-4 py-4 sm:px-8">
+        <header className="sticky top-0 z-20 flex items-center justify-between bg-black px-[36px] py-4 sm:px-[52px] lg:px-[100px]">
           <AppLogo />
 
           <Link href="/" aria-label="Close" className="flex h-[50px] w-[50px] items-center justify-center rounded-full border border-white/70">

@@ -100,9 +100,10 @@ def create_case(
     description: str = Form(...),
     link: Optional[str] = Form(None),
     location: Optional[str] = Form(None),
-    keywords: str = Form(...),  # Comma-separated
-    agents: str = Form(...),
-    organizations: str = Form(...),
+    is_unibz_course: bool = Form(False),
+    keywords: str = Form(""),  # Comma-separated
+    agents: str = Form(""),
+    organizations: str = Form(""),
     image: Optional[UploadFile] = File(None),
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -137,6 +138,7 @@ def create_case(
         description=description,
         link=link,
         location=location_data,
+        is_unibz_course=is_unibz_course,
         keywords=kw_list,
         agents=ag_list,
         organizations=org_list
@@ -152,9 +154,10 @@ def update_case(
     description: str = Form(...),
     link: Optional[str] = Form(None),
     location: Optional[str] = Form(None),
-    keywords: str = Form(...),
-    agents: str = Form(...),
-    organizations: str = Form(...),
+    is_unibz_course: bool = Form(False),
+    keywords: str = Form(""),
+    agents: str = Form(""),
+    organizations: str = Form(""),
     image: Optional[UploadFile] = File(None),
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -189,6 +192,7 @@ def update_case(
         description=description,
         link=link,
         location=location_data,
+        is_unibz_course=is_unibz_course,
         keywords=kw_list,
         agents=ag_list,
         organizations=org_list

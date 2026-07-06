@@ -1,8 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import api from '../lib/api';
+import { useEffect, useRef, useState } from 'react';
+import api, { API_BASE_URL } from '../lib/api';
+import { PLACEHOLDER_CASE_IMAGE } from '../lib/placeholder-image';
 import LocationAutocomplete, { LocationResult } from './location-autocomplete';
+import ConfirmDialog from './confirm-dialog';
+import { useLockBodyScroll } from '../lib/use-lock-body-scroll';
 
 type CaseLocation = string | { display_name: string } | undefined;
 
@@ -14,6 +17,7 @@ interface Case {
   image_path?: string;
   link?: string;
   location?: CaseLocation;
+  is_unibz_course?: boolean;
   user_id: number;
   keywords: { name: string }[];
   agents: { name: string }[];
@@ -24,9 +28,10 @@ interface EditCaseModalProps {
   isOpen: boolean;
   caseId: number | null;
   onClose: () => void;
+  onDeleted?: (caseId: number) => void;
 }
 
-export default function EditCaseModal({ isOpen, caseId, onClose }: EditCaseModalProps) {
+export default function EditCaseModal({ isOpen, caseId, onClose, onDeleted }: EditCaseModalProps) {
   const [caseItem, setCaseItem] = useState<Case | null>(null);
   const [type, setType] = useState('project');
   const [name, setName] = useState('');
@@ -37,10 +42,17 @@ export default function EditCaseModal({ isOpen, caseId, onClose }: EditCaseModal
   const [keywords, setKeywords] = useState('');
   const [agents, setAgents] = useState('');
   const [organizations, setOrganizations] = useState('');
+  const [isUnibzCourse, setIsUnibzCourse] = useState(false);
+  const [image, setImage] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+
+  useLockBodyScroll(isOpen);
 
   useEffect(() => {
     if (!isOpen || !caseId) return;
@@ -54,6 +66,7 @@ export default function EditCaseModal({ isOpen, caseId, onClose }: EditCaseModal
         const response = await api.get(`/cases/${caseId}`);
         const data: Case = response.data;
         setCaseItem(data);
+        setImage(null);
         setType(data.type);
         setName(data.name);
         setDescription(data.description);
@@ -61,6 +74,7 @@ export default function EditCaseModal({ isOpen, caseId, onClose }: EditCaseModal
         setKeywords(data.keywords.map((kw) => kw.name).join(', '));
         setAgents(data.agents.map((ag) => ag.name).join(', '));
         setOrganizations(data.organizations.map((org) => org.name).join(', '));
+        setIsUnibzCourse(data.is_unibz_course || false);
 
         if (data.location && typeof data.location === 'object') {
           setLocationInput(data.location.display_name || '');
@@ -114,6 +128,11 @@ export default function EditCaseModal({ isOpen, caseId, onClose }: EditCaseModal
       formData.append('keywords', keywords);
       formData.append('agents', agents);
       formData.append('organizations', organizations);
+      formData.append('is_unibz_course', String(isUnibzCourse));
+
+      if (image) {
+        formData.append('image', image);
+      }
 
       await api.put(`/cases/${caseId}`, formData);
       onClose();
@@ -125,7 +144,26 @@ export default function EditCaseModal({ isOpen, caseId, onClose }: EditCaseModal
     }
   };
 
+  const handleDelete = async () => {
+    if (!caseId) return;
+
+    setDeleting(true);
+    setError('');
+
+    try {
+      await api.delete(`/cases/${caseId}`);
+      setShowDeleteConfirm(false);
+      onDeleted?.(caseId);
+      onClose();
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Delete failed');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
+    <>
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 backdrop-blur-sm p-4"
       onClick={onClose}
@@ -171,6 +209,47 @@ export default function EditCaseModal({ isOpen, caseId, onClose }: EditCaseModal
           )}
 
           <form id="edit-case-form" onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label className="mb-2 block text-sm font-medium text-black">Photo</label>
+              <div className="flex items-center gap-4">
+                <div className="h-20 w-28 shrink-0 overflow-hidden rounded-[16px] bg-gray-100">
+                  <img
+                    src={
+                      image
+                        ? URL.createObjectURL(image)
+                        : caseItem?.image_path
+                        ? `${API_BASE_URL}/uploads/${encodeURIComponent(caseItem.image_path)}`
+                        : PLACEHOLDER_CASE_IMAGE
+                    }
+                    alt={name || 'Case photo'}
+                    className="h-full w-full object-cover"
+                    onError={(e) => {
+                      const target = e.currentTarget;
+                      if (target.src !== PLACEHOLDER_CASE_IMAGE) {
+                        target.onerror = null;
+                        target.src = PLACEHOLDER_CASE_IMAGE;
+                      }
+                    }}
+                  />
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => setImage(e.target.files?.[0] || null)}
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="rounded-full bg-black px-4 py-2 text-sm font-medium text-white transition hover:bg-black/80"
+                >
+                  Change photo
+                </button>
+                {image && <span className="text-sm text-gray-600">{image.name}</span>}
+              </div>
+            </div>
+
             <div className="grid gap-4 md:grid-cols-2">
               <div>
                 <label className="mb-2 block text-sm font-medium text-black">Type</label>
@@ -261,16 +340,52 @@ export default function EditCaseModal({ isOpen, caseId, onClose }: EditCaseModal
                 required
               />
             </div>
+
+            {(type === 'project' || type === 'organization') && (
+              <div>
+                <label className="mb-2 block text-sm font-medium text-black">Is this {type} developed during a UNIBZ course?</label>
+                <div className="inline-flex overflow-hidden rounded-full border border-black">
+                  <button
+                    type="button"
+                    onClick={() => setIsUnibzCourse(true)}
+                    aria-pressed={isUnibzCourse}
+                    className={`px-6 py-2 text-sm font-semibold transition ${
+                      isUnibzCourse ? 'bg-[#2cffb2] text-black' : 'bg-white text-gray-500 hover:bg-gray-50'
+                    }`}
+                  >
+                    Yes
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsUnibzCourse(false)}
+                    aria-pressed={!isUnibzCourse}
+                    className={`border-l border-black px-6 py-2 text-sm font-semibold transition ${
+                      !isUnibzCourse ? 'bg-[#ffb885] text-black' : 'bg-white text-gray-500 hover:bg-gray-50'
+                    }`}
+                  >
+                    No
+                  </button>
+                </div>
+              </div>
+            )}
           </form>
         </div>
 
         <div className="sticky bottom-0 z-10 border-t border-black/10 bg-white px-6 py-4 shadow-[0_-10px_35px_-24px_rgba(0,0,0,0.2)] sm:px-8">
-          <div className="flex justify-end">
+          <div className="flex justify-between">
+            <button
+              type="button"
+              onClick={() => setShowDeleteConfirm(true)}
+              disabled={saving || deleting}
+              className="inline-flex justify-center rounded-full bg-[#ffb885] px-6 py-3 text-sm font-semibold text-black transition hover:bg-[#f2a15e] disabled:opacity-50"
+            >
+              {deleting ? 'Deleting…' : 'Delete case'}
+            </button>
             <button
               type="submit"
               form="edit-case-form"
-              disabled={saving}
-              className="inline-flex justify-center rounded-full bg-[#ffb885] px-6 py-3 text-sm font-semibold text-black transition hover:bg-[#f2a15e] disabled:opacity-50"
+              disabled={saving || deleting}
+              className="inline-flex justify-center rounded-full bg-[#2cffb2] px-6 py-3 text-sm font-semibold text-black transition hover:opacity-90 disabled:opacity-50"
             >
               {saving ? 'Saving…' : 'Save changes'}
             </button>
@@ -278,5 +393,17 @@ export default function EditCaseModal({ isOpen, caseId, onClose }: EditCaseModal
         </div>
       </div>
     </div>
+
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        title="Delete case study"
+        message="Are you sure you want to permanently delete this case study? This cannot be undone."
+        confirmLabel="Delete Case"
+        confirmButtonClassName="bg-[#ffb885] text-black hover:bg-[#f2a15e]"
+        isConfirming={deleting}
+        onConfirm={handleDelete}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
+    </>
   );
 }

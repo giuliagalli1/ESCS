@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import api from '../../../lib/api';
 import LocationAutocomplete, { LocationResult } from '../../../components/location-autocomplete';
+import ConfirmDialog from '../../../components/confirm-dialog';
 
 type CaseLocation = string | { display_name: string } | undefined;
 
@@ -42,6 +43,7 @@ export default function EditCasePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -146,10 +148,6 @@ export default function EditCasePage() {
       return;
     }
 
-    if (!confirm('Are you sure you want to permanently delete this case study?')) {
-      return;
-    }
-
     try {
       setDeleting(true);
       setError('');
@@ -160,6 +158,7 @@ export default function EditCasePage() {
       setError(err.response?.data?.detail || err.message || 'Delete failed');
     } finally {
       setDeleting(false);
+      setShowDeleteConfirm(false);
     }
   };
 
@@ -295,15 +294,15 @@ export default function EditCasePage() {
             <button
               type="submit"
               disabled={saving || deleting}
-              className="flex-1 bg-yellow-600 text-white py-2 rounded-md hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 bg-[#2cffb2] text-black py-2 rounded-md hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {saving ? 'Saving...' : 'Save Changes'}
             </button>
             <button
               type="button"
-              onClick={handleDelete}
+              onClick={() => setShowDeleteConfirm(true)}
               disabled={saving || deleting}
-              className="flex-1 bg-red-600 text-white py-2 rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 bg-[#ffb885] text-black py-2 rounded-md hover:bg-[#f2a15e] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {deleting ? 'Deleting...' : 'Delete Case'}
             </button>
@@ -313,6 +312,17 @@ export default function EditCasePage() {
           </div>
         </form>
       </div>
+
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        title="Delete case study"
+        message="Are you sure you want to permanently delete this case study? This cannot be undone."
+        confirmLabel="Delete Case"
+        confirmButtonClassName="bg-[#ffb885] text-black hover:bg-[#f2a15e]"
+        isConfirming={deleting}
+        onConfirm={handleDelete}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
     </div>
   );
 }

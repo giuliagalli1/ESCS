@@ -20,7 +20,7 @@ def create_user(db: Session, user: schemas.UserCreate):
     return db_user
 
 def get_cases(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(models.Case).offset(skip).limit(limit).all()
+    return db.query(models.Case).order_by(models.Case.id.desc()).offset(skip).limit(limit).all()
 
 def get_case_by_name(db: Session, name: str):
     return db.query(models.Case).filter(func.lower(models.Case.name) == name.strip().lower()).first()
@@ -69,6 +69,7 @@ def create_case(db: Session, case: schemas.CaseCreate, user_id: int = None, imag
         description=case.description,
         link=case.link,
         location=case.location,
+        is_unibz_course=case.is_unibz_course,
         image_path=image_path,
         user_id=user_id,
         keywords=keywords,
@@ -86,6 +87,7 @@ def update_case(db: Session, db_case: models.Case, case: schemas.CaseCreate, ima
     db_case.description = case.description
     db_case.link = case.link
     db_case.location = case.location
+    db_case.is_unibz_course = case.is_unibz_course
     if image_path is not None:
         db_case.image_path = image_path
 
